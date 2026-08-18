@@ -1,4 +1,4 @@
-# 🌊 BIIGLE Benthic Image Analysis Pipeline
+# BIIGLE Benthic Image Analysis Pipeline
 
 > [!NOTE]
 > **Status: v0.1 repository architecture and worked-example scaffold.**  
@@ -6,7 +6,7 @@
 
 ---
 
-## 🎯 Purpose
+## Purpose
 
 The aim of this repository is to make a complete BIIGLE benthic-image workflow **reproducible, inspectable and reusable by another researcher**. A user should be able to provide a manually concatenated BIIGLE annotation table plus a small set of lookup/metadata sheets, run numbered processing stages, inspect the output from every transformation, and then reproduce the ecological analyses and figures shown in this GitHub README.
 
@@ -24,42 +24,81 @@ The README is intended to function simultaneously as:
 
 ---
 
-# 📚 Contents
+# Contents
 
-1. [Repository structure](#-repository-structure)
-2. [Core analytical principles](#-core-analytical-principles)
-3. [Worked-example input snapshot](#-worked-example-input-snapshot)
-4. [Required input files](#-required-input-files)
-5. [Input data dictionaries](#-input-data-dictionaries)
-6. [Processing workflow](#-processing-workflow)
-7. [Final datasets](#-final-datasets)
-8. [Statistical analysis map](#-statistical-analysis-map)
-9. [Alpha diversity](#-alpha-diversity)
-10. [Community resemblance and NMDS](#-community-resemblance-and-nmds)
-11. [PERMANOVA](#-permanova)
-12. [CAP / dbRDA](#-cap--dbrda)
-13. [Regression and environmental models](#-regression-and-environmental-models)
-14. [Univariate tests](#-univariate-tests)
-15. [Taxon responses](#-taxon-responses)
-16. [VME analyses](#-vme-analyses)
-17. [Figure and GitHub-linking system](#-figure-and-github-linking-system)
-18. [Central configuration](#-central-configuration)
-19. [Quality control](#-quality-control)
-20. [Adding a new analysis](#-adding-a-new-analysis)
-21. [Reproducibility and interpretation](#-reproducibility-and-interpretation)
-22. [Development status](#-development-status)
+1. [Getting Started on Mac](#getting-started-on-mac)
+2. [Repository Structure](#repository-structure)
+3. [Core Analytical Principles](#core-analytical-principles)
+4. [Worked-Example Input Snapshot](#worked-example-input-snapshot)
+5. [Required Input Files](#required-input-files)
+6. [Processing Workflow](#processing-workflow)
+7. [Final Datasets](#final-datasets)
+8. [Statistical Analysis Map](#statistical-analysis-map)
+9. [Alpha Diversity](#alpha-diversity)
+10. [Community Resemblance and NMDS](#community-resemblance-and-nmds)
+11. [PERMANOVA](#permanova)
+12. [CAP / dbRDA](#cap--dbrda)
+13. [Regression and Environmental Models](#regression-and-environmental-models)
+14. [Univariate Tests](#univariate-tests)
+15. [Taxon Responses](#taxon-responses)
+16. [VME Analyses](#vme-analyses)
+17. [Figure and GitHub-Linking System](#figure-and-github-linking-system)
+18. [Central Configuration](#central-configuration)
+19. [Quality Control](#quality-control)
+20. [Adding a New Analysis](#adding-a-new-analysis)
+21. [Reproducibility and Interpretation](#reproducibility-and-interpretation)
+22. [Development Status](#development-status)
 
 ---
 
-# 📁 Repository Structure
+# Getting Started on Mac
+
+The recommended workflow is to **work locally on a Mac inside a cloned GitHub repository** and use GitHub as the remote, versioned and shareable record of the project. Do not repeatedly download new copies of the repository into `Downloads/`. Maintain one local working copy and synchronise it with GitHub using Git.
+
+Recommended local location:
 
 ```text
-BIIGLE_Benthic_Pipeline/
+~/Documents/GitHub/BIIGLE-Benthic-Pipeline/
+```
+
+The complete installation, cloning, authentication, file-placement and day-to-day Git workflow is documented in:
+
+[**SETUP.md — Getting Started on Mac**](SETUP.md)
+
+A typical working session is:
+
+```bash
+cd ~/Documents/GitHub/BIIGLE-Benthic-Pipeline
+git pull
+
+# edit scripts, update Sheets/ when appropriate, and run analyses locally
+
+git status
+git add .
+git commit -m "Describe the completed change"
+git push
+```
+
+> [!IMPORTANT]
+> `Raw/` is intended as **local provenance/archive storage** for original BIIGLE ZIP exports and other large source material. Its contents are ignored by Git by default. The reproducible pipeline begins from the manually concatenated `Sheets/combined_biigle_annotations.csv` plus the prerequisite metadata/lookup sheets.
+
+> [!NOTE]
+> The worked-example files in `Sheets/`, selected intermediate/final datasets, analysis outputs and figures may be versioned so that GitHub can act as a navigable worked example. If future datasets become too large for ordinary Git tracking, large-data storage should be handled separately without changing the analytical folder contract.
+
+---
+
+# Repository Structure
+
+```text
+BIIGLE-Benthic-Pipeline/
 │
 ├── README.md
+├── SETUP.md
+├── .gitignore
 │
 ├── Raw/
-│   └── original_BIIGLE_exports.zip
+│   ├── README.md
+│   └── original_BIIGLE_exports.zip   # local only; not committed
 │
 ├── Sheets/
 │   ├── combined_biigle_annotations.csv
@@ -127,7 +166,7 @@ BIIGLE_Benthic_Pipeline/
 
 | Folder | Meaning |
 |---|---|
-| `Raw/` | Original BIIGLE downloads retained unchanged for provenance |
+| `Raw/` | Local-only archive of original BIIGLE downloads; ignored by Git by default |
 | `Sheets/` | Researcher-supplied prerequisite tables; treated as immutable |
 | `Scripts/` | Numbered data-processing and analysis code |
 | `Data/Intermediate/` | Stage-by-stage transformed datasets |
@@ -136,11 +175,11 @@ BIIGLE_Benthic_Pipeline/
 | `Figures/` | Numbered plots linked directly into this README |
 
 > [!IMPORTANT]
-> **Never silently overwrite `Raw/` or `Sheets/`.** A formal pipeline should read these inputs and write transformed files to `Data/Intermediate/`.
+> **Never silently overwrite `Raw/` or `Sheets/`.** `Raw/` is a local provenance archive and `Sheets/` contains the canonical prerequisite inputs. A formal pipeline should read these inputs and write transformed files to `Data/Intermediate/`.
 
 ---
 
-# 🧠 Core Analytical Principles
+# Core Analytical Principles
 
 ## 1. The frame is the principal ecological sampling unit
 
@@ -192,28 +231,72 @@ Biological habitat formers such as macroalgae should not be folded into the phys
 
 ---
 
-# 🔎 Worked-Example Input Snapshot
+# Worked-Example Input Snapshot
 
-The supplied example repository currently contains:
+The worked example in this repository is built from a manually concatenated BIIGLE annotation table plus four researcher-supplied metadata/lookup sheets. The original BIIGLE annotation exports are retained locally in `Raw/` for provenance but are **not** required by the automated pipeline after concatenation.
 
 | Input | Records | Primary role |
 |---|---:|---|
+| Raw BIIGLE annotation exports | 25 ZIP archives | Provenance for the manually concatenated example annotation table |
 | `combined_biigle_annotations.csv` | 55,096 annotation rows | Manually concatenated BIIGLE annotations |
 | BIIGLE frames | 525 unique filenames | Image-level sampling units |
 | dives | 19 unique dive IDs | Spatial/sampling grouping |
 | `gl_latlong.csv` | 28 lookup records | Dive/site coordinates |
-| `depth_temp_frameid.csv` | 220 frame records | Frame depth, temperature and time |
+| `depth_temp_frameid.csv` | 395 frame records | Frame depth, temperature and time |
 | `taxon_list.csv` | 288 lookup records | Taxonomy, common IDs and abiotic descriptors |
 | `vme_taxon_list.csv` | 58 lookup records | VME taxonomy and common IDs |
 
+## Raw BIIGLE exports used for the worked example
+
+The following 25 BIIGLE CSV image-annotation report archives form the raw provenance for the worked-example `combined_biigle_annotations.csv`:
+
+```text
+32643_csv_image_annotation_report.zip
+32572_csv_image_annotation_report.zip
+32574_csv_image_annotation_report.zip
+32575_csv_image_annotation_report.zip
+32581_csv_image_annotation_report.zip
+32583_csv_image_annotation_report.zip
+32584_csv_image_annotation_report.zip
+32585_csv_image_annotation_report.zip
+32586_csv_image_annotation_report.zip
+32622_csv_image_annotation_report.zip
+32625_csv_image_annotation_report.zip
+32626_csv_image_annotation_report.zip
+32627_csv_image_annotation_report.zip
+32629_csv_image_annotation_report.zip
+32630_csv_image_annotation_report.zip
+32633_csv_image_annotation_report.zip
+32634_csv_image_annotation_report.zip
+32635_csv_image_annotation_report.zip
+32636_csv_image_annotation_report.zip
+32637_csv_image_annotation_report.zip
+32638_csv_image_annotation_report.zip
+32639_csv_image_annotation_report.zip
+32640_csv_image_annotation_report.zip
+32641_csv_image_annotation_report.zip
+32642_csv_image_annotation_report.zip
+```
+
+These archives may be stored locally under `Raw/`. The current pipeline deliberately begins **after** these exports have been manually concatenated into `Sheets/combined_biigle_annotations.csv`; the ZIP files themselves are therefore not required to rerun the downstream enrichment and ecological analyses.
+
+> [!IMPORTANT]
+> The filenames shown throughout this repository are the **canonical local/GitHub filenames**. Browser or chat download suffixes such as `taxon_list(2).csv`, `depth_temp_frameid(4).csv`, or `combined_biigle_annotations(3).csv` are not part of the pipeline naming convention. Inside the repository these files must be named exactly `taxon_list.csv`, `depth_temp_frameid.csv`, `combined_biigle_annotations.csv`, and so on.
+
 The raw combined table contains Biotic, Abiotic, Exclude, UNSURE, VME and occasional other annotation hierarchies. The formal processing stage derives `top_level` from the first component of `label_hierarchy`.
 
+### Current metadata coverage in the worked example
+
+- all 19 BIIGLE dive IDs match `gl_latlong.csv` after the documented case/hyphen/underscore normalisation;
+- 209 of 525 unique BIIGLE frame filenames currently match `FrameID` values in `depth_temp_frameid.csv` exactly;
+- unmatched frames are retained and reported explicitly rather than silently imputed.
+
 > [!WARNING]
-> In the current worked example, only a subset of BIIGLE filenames is represented in the supplied frame depth/temperature table. This is not silently imputed. The validation stage writes an explicit unmatched-frame report so missing environmental metadata remains visible.
+> Environmental metadata coverage is therefore incomplete in the current worked example. Analyses requiring depth or temperature must use only frames with valid matched metadata and must report the resulting sample size.
 
 ---
 
-# 📥 Required Input Files
+# Required Input Files
 
 ## `Sheets/combined_biigle_annotations.csv`
 
@@ -373,7 +456,7 @@ Matching should use the ordered VME hierarchy, with exact matching preferred and
 
 ---
 
-# ⚙️ Processing Workflow
+# Processing Workflow
 
 Each formal stage should produce a **new numbered intermediate dataset**. The current tested scripts are retained under `Scripts/legacy_current/` while they are refactored to this non-destructive folder contract.
 
@@ -481,7 +564,7 @@ The original/intermediate master table is retained.
 
 ---
 
-# 🧾 Final Datasets
+# Final Datasets
 
 ## `point_annotations.csv`
 
@@ -513,7 +596,7 @@ Absence from `vme_annotations.csv` is interpreted as a frame-level non-detection
 
 ---
 
-# 🧪 Statistical Analysis Map
+# Statistical Analysis Map
 
 | Analysis | Primary response | Predictors / grouping | Main purpose |
 |---|---|---|---|
@@ -542,7 +625,7 @@ Absence from `vme_annotations.csv` is interpreted as a frame-level non-detection
 
 ---
 
-# 🌿 Alpha Diversity
+# Alpha Diversity
 
 ## Observed common-ID richness
 
@@ -642,7 +725,7 @@ Values closer to 1 indicate greater evenness.
 
 ---
 
-# 🧬 Community Resemblance and NMDS
+# Community Resemblance and NMDS
 
 ## Community matrix
 
@@ -774,7 +857,7 @@ Other overlays may include:
 
 ---
 
-# 🧮 PERMANOVA
+# PERMANOVA
 
 ## What are we testing?
 
@@ -857,7 +940,7 @@ Frames from the same dive are not automatically independent. The default design 
 
 ---
 
-# 🧭 CAP / dbRDA
+# CAP / dbRDA
 
 CAP here refers to a constrained ordination of ecological resemblance, implemented using a distance-based constrained method such as `vegan::capscale()` or `dbrda()`.
 
@@ -912,7 +995,7 @@ CAP  = What part of that structure is associated with specified predictors?
 
 ---
 
-# 📈 Regression and Environmental Models
+# Regression and Environmental Models
 
 ## Spearman rank correlation
 
@@ -1007,7 +1090,7 @@ Plots should show the fitted trend and uncertainty rather than relying only on p
 
 ---
 
-# ⚖️ Univariate Tests
+# Univariate Tests
 
 ## Welch two-sample t-test
 
@@ -1087,7 +1170,7 @@ p.adjust(p_values, method = "BH")
 
 ---
 
-# 🐠 Taxon Responses
+# Taxon Responses
 
 ## Question
 
@@ -1124,7 +1207,7 @@ For each focal taxon, output should include:
 
 ---
 
-# 🪸 VME Analyses
+# VME Analyses
 
 VME analyses remain separate from the random-point abundance matrix.
 
@@ -1149,7 +1232,7 @@ Binary VME occurrence can be modelled using an appropriate binary-response model
 
 ---
 
-# 🖼️ Figure and GitHub-Linking System
+# Figure and GitHub-Linking System
 
 Every analytical figure should have a deterministic number and descriptive filename.
 
@@ -1214,7 +1297,7 @@ This lets the README remain comprehensive without forcing every diagnostic table
 
 ---
 
-# 🎨 Central Configuration
+# Central Configuration
 
 All user-facing options should be concentrated in `Scripts/00_config.R`, including:
 
@@ -1237,7 +1320,7 @@ This means plot styling should be changed in **one obvious place**, not buried i
 
 ---
 
-# ✅ Quality Control
+# Quality Control
 
 At minimum, the formal QC module should produce:
 
@@ -1291,7 +1374,7 @@ At minimum, the formal QC module should produce:
 
 ---
 
-# ➕ Adding a New Analysis
+# Adding a New Analysis
 
 A new analysis should be modular and should not edit upstream datasets.
 
@@ -1349,7 +1432,7 @@ That template is the core mechanism that makes this repository expandable.
 
 ---
 
-# ♻️ Reproducibility and Interpretation
+# Reproducibility and Interpretation
 
 ## Reproducibility principles
 
@@ -1379,30 +1462,30 @@ That template is the core mechanism that makes this repository expandable.
 
 ---
 
-# 🚧 Development Status
+# Development Status
 
 | Component | Status |
 |---|---|
-| Canonical repository structure | ✅ established |
-| Canonical input filenames | ✅ established |
-| Example prerequisite sheets | ✅ included |
-| Initial input validator | ✅ included |
-| Central R configuration | ✅ scaffolded |
-| Existing transformation scripts | ✅ retained under `Scripts/legacy_current/` |
-| Refactor transformations to immutable `Sheets/` → `Data/Intermediate/` contract | ⏳ next |
-| Point/VME final data split | ✅ logic already developed; path refactor pending |
-| Frame substrate characterisation | ✅ logic already developed; path refactor pending |
-| Existing ecological analysis tests | ✅ existing pipeline retained; modular refactor pending |
-| NMDS module with configurable latitude palette | ⏳ planned |
-| PERMANOVA + PERMDISP module | ⏳ planned/refactor |
-| CAP/dbRDA module | ⏳ planned |
-| Regression + log-LM + GAM module | ⏳ planned/refactor |
-| Automated eligible t-test/ANOVA module | ⏳ planned |
-| GitHub-linked worked-example figures/results | ⏳ generated as analysis modules are finalised |
-| Software lockfile | ⏳ planned |
+| Canonical repository structure | Established |
+| Canonical input filenames | Established |
+| Example prerequisite sheets | Included |
+| Initial input validator | Included |
+| Central R configuration | Scaffolded |
+| Existing transformation scripts | Retained under `Scripts/legacy_current/` |
+| Refactor transformations to immutable `Sheets/` → `Data/Intermediate/` contract | Next |
+| Point/VME final data split | Logic developed; path refactor pending |
+| Frame substrate characterisation | Logic developed; path refactor pending |
+| Existing ecological analysis tests | Existing pipeline retained; modular refactor pending |
+| NMDS module with configurable latitude palette | Planned |
+| PERMANOVA + PERMDISP module | Planned/refactor |
+| CAP/dbRDA module | Planned |
+| Regression + log-LM + GAM module | Planned/refactor |
+| Automated eligible t-test/ANOVA module | Planned |
+| GitHub-linked worked-example figures/results | Generated as analysis modules are finalised |
+| Software lockfile | Planned |
 
 ---
 
-## 🧭 Immediate Next Development Step
+## Immediate Next Development Step
 
 The next formal development stage is to refactor each of the already-tested enrichment scripts so that it reads an immutable source/intermediate file and writes the correctly numbered file in `Data/Intermediate/`. Once that contract is stable, the ecology analysis can be separated into modular R scripts and this README can begin embedding the **actual generated tables and figures from the worked example**.
