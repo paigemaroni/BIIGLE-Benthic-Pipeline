@@ -1,0 +1,8 @@
+check,status,details
+combined_biigle_annotations.csv,PASS,"55,096 rows; missing required columns: none"
+gl_latlong.csv,PASS,28 rows; missing required columns: none
+depth_temp_frameid.csv,PASS,220 rows; missing required columns: none
+taxon_list.csv,PASS,288 rows; missing required columns: none
+vme_taxon_list.csv,PASS,58 rows; missing required columns: none
+JOIN dive_id ↔ FullID,PASS,19/19 unique dives matched
+JOIN filename ↔ FrameID,WARNING,105/525 unique BIIGLE frames matched

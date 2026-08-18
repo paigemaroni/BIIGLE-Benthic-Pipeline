@@ -1,0 +1,5 @@
+# combine all .csv files within the .zip files from the raw BIIGLE data to make one combined csv here and then move the combined .csv into the sheets sub-folder
+
+chmod +x ./scripts/combine_biigle_csvs.sh
+
+./scripts/combine_biigle_csvs.sh
