@@ -33,21 +33,22 @@ The README is intended to function simultaneously as:
 5. [Required Input Files](#required-input-files)
 6. [Processing Workflow](#processing-workflow)
 7. [Final Datasets](#final-datasets)
-8. [Statistical Analysis Map](#statistical-analysis-map)
-9. [Alpha Diversity](#alpha-diversity)
-10. [Community Resemblance and NMDS](#community-resemblance-and-nmds)
-11. [PERMANOVA](#permanova)
-12. [CAP / dbRDA](#cap--dbrda)
-13. [Regression and Environmental Models](#regression-and-environmental-models)
-14. [Univariate Tests](#univariate-tests)
-15. [Taxon Responses](#taxon-responses)
-16. [VME Analyses](#vme-analyses)
-17. [Figure and GitHub-Linking System](#figure-and-github-linking-system)
-18. [Central Configuration](#central-configuration)
-19. [Quality Control](#quality-control)
-20. [Adding a New Analysis](#adding-a-new-analysis)
-21. [Reproducibility and Interpretation](#reproducibility-and-interpretation)
-22. [Development Status](#development-status)
+8. [Running the Ecological Analyses](#running-the-ecological-analyses)
+9. [Statistical Analysis Map](#statistical-analysis-map)
+10. [Alpha Diversity](#alpha-diversity)
+11. [Community Resemblance and NMDS](#community-resemblance-and-nmds)
+12. [PERMANOVA](#permanova)
+13. [CAP / dbRDA](#cap--dbrda)
+14. [Regression and Environmental Models](#regression-and-environmental-models)
+15. [Univariate Tests](#univariate-tests)
+16. [Taxon Responses](#taxon-responses)
+17. [VME Analyses](#vme-analyses)
+18. [Figure and GitHub-Linking System](#figure-and-github-linking-system)
+19. [Central Configuration](#central-configuration)
+20. [Quality Control](#quality-control)
+21. [Adding a New Analysis](#adding-a-new-analysis)
+22. [Reproducibility and Interpretation](#reproducibility-and-interpretation)
+23. [Development Status](#development-status)
 
 ---
 
@@ -458,7 +459,19 @@ Matching should use the ordered VME hierarchy, with exact matching preferred and
 
 # Processing Workflow
 
-Each formal stage should produce a **new numbered intermediate dataset**. The current tested scripts are retained under `Scripts/legacy_current/` while they are refactored to this non-destructive folder contract.
+Each formal stage produces a **new numbered intermediate dataset** and leaves the researcher-supplied files in `Sheets/` unchanged. The canonical wrapper scripts now enforce this non-destructive contract. During the current development version, those wrappers call the already-tested implementations retained under `Scripts/legacy_current/`; this preserves validated matching logic while keeping the public workflow stable.
+
+The entire processing phase can be run from the repository root with:
+
+```bash
+./Scripts/run_processing_pipeline.sh .
+```
+
+This executes Steps 00–07 in order and writes a processing manifest to:
+
+```text
+Analyses/00_Quality_Control/07_processing_pipeline_manifest.csv
+```
 
 ## Step 00 — Validate inputs
 
@@ -470,9 +483,33 @@ Checks:
 
 - required files exist;
 - required columns exist;
+- conflicting duplicate lookup keys;
 - `dive_id ↔ FullID` coverage;
 - `filename ↔ FrameID` coverage;
+- frame-level environmental metadata coverage by dive;
+- whether metadata coverage is complete, absent or partial within each dive;
+- the total raw-export frame universe;
+- the random-point-sampled frame universe;
+- unique random-point `annotation_id` counts per frame;
+- frames that do not meet the nominal 100-point design;
+- VME-only frames with no random-point annotations;
+- annotation IDs carrying conflicting top-level classifications;
 - unmatched IDs are explicitly written to QC files.
+
+For the current worked example, validation identifies two distinct analytical universes:
+
+```text
+Raw-export frame universe:         525 frames
+Random-point-sampled universe:     522 frames
+VME-only/no-random-point frames:     3 frames
+
+Frames with depth/temp metadata:   209 / 525
+Dives with complete metadata:        8 / 19
+Dives with no frame metadata:       11 / 19
+Partially matched dives:             0 / 19
+```
+
+Among the 522 point-sampled frames, 430 resolve to exactly 100 unique non-VME point annotations and 92 are flagged for review. These deviations are **reported rather than silently corrected**. Later community models use configurable minimum/maximum total-point thresholds and minimum assigned-biotic-point thresholds so severely incomplete or anomalously oversampled frames do not automatically enter inferential community analyses.
 
 Run:
 
@@ -562,6 +599,30 @@ Data/Final/vme_annotations.csv
 
 The original/intermediate master table is retained.
 
+## Current worked-example processing test
+
+The complete Steps 00–07 processing workflow has been executed successfully on the example dataset. The current outputs are:
+
+| Stage | Output | Rows | Columns |
+|---|---|---:|---:|
+| 01 | `Data/Intermediate/01_annotations_latlong.csv` | 55,096 | 21 |
+| 02 | `Data/Intermediate/02_annotations_top_level.csv` | 55,096 | 22 |
+| 03 | `Data/Intermediate/03_annotations_taxonomy.csv` | 55,096 | 37 |
+| 04 | `Data/Intermediate/04_annotations_environment.csv` | 55,096 | 40 |
+| 05 | `Data/Intermediate/05_annotations_vme_taxonomy.csv` | 55,096 | 40 |
+| 06 | `Data/Intermediate/06_annotations_frame_substrate.csv` | 55,096 | 44 |
+| 07a | `Data/Final/point_annotations.csv` | 51,955 | 44 |
+| 07b | `Data/Final/vme_annotations.csv` | 3,141 | 44 |
+
+Additional worked-example checks include:
+
+- all 55,096 annotation rows receive latitude/longitude values;
+- 209 unique frame filenames receive depth/temperature metadata;
+- 3,141 VME rows are separated from the random-point table;
+- VME hierarchy matching resolves 2,517 rows exactly and 622 using conservative unambiguous fallback matching, with two unmatched VME rows reported for review;
+- 512 of 525 raw-export frames receive a frame substrate class;
+- source files in `Sheets/` remain unchanged.
+
 ---
 
 # Final Datasets
@@ -593,6 +654,51 @@ Used for:
 - targeted VME visualisations.
 
 Absence from `vme_annotations.csv` is interpreted as a frame-level non-detection **only when that frame belongs to the defined point/frame sampling universe and the VME annotation workflow was consistently applied**.
+
+---
+
+# Running the Ecological Analyses
+
+After Steps 00–07 have produced the final point and VME datasets, install the required R packages once:
+
+```bash
+Rscript Scripts/install_R_packages.R
+```
+
+Then run the complete analysis suite:
+
+```bash
+./Scripts/run_analysis_pipeline.sh .
+```
+
+Or run individual modules:
+
+```bash
+Rscript Scripts/20_analysis_qc.R
+Rscript Scripts/21_analysis_alpha_diversity.R
+Rscript Scripts/22_analysis_nmds.R
+Rscript Scripts/23_analysis_permanova.R
+Rscript Scripts/24_analysis_cap_dbrda.R
+Rscript Scripts/25_analysis_environment.R
+Rscript Scripts/26_analysis_univariate.R
+Rscript Scripts/27_analysis_taxon_responses.R
+Rscript Scripts/28_analysis_vme.R
+```
+
+For a completely fresh rerun of processing **and** analyses:
+
+```bash
+./Scripts/run_full_pipeline.sh .
+```
+
+All user-editable analytical choices are centralised in `Scripts/00_config.R`. In particular, the current community workflow uses square-root-transformed relative abundance (`COMMUNITY_TRANSFORM = "sqrt_relative"`) so Bray–Curtis comparisons remain interpretable when some frames depart from the nominal 100-point effort. Community-model eligibility is also configurable using total-point and assigned-biotic-point thresholds.
+
+Every statistical module writes:
+
+- machine-readable result tables to its matching `Analyses/` subfolder;
+- numbered figures to `Figures/`;
+- sample sizes or model-eligibility information where applicable;
+- model objects (`.rds`) when retaining the fitted object is useful.
 
 ---
 
@@ -739,11 +845,23 @@ cells   = point counts
 
 ### Default transformation
 
-```r
-sqrt(abundance)
+The current worked-example default is:
+
+```text
+frame counts
+    ↓ convert to within-frame relative abundance
+relative abundance
+    ↓ square-root transform
+sqrt(relative abundance)
 ```
 
-A square-root transformation reduces the influence of highly abundant groups while retaining abundance information. It is configurable in `Scripts/00_config.R`.
+This is configured as:
+
+```r
+COMMUNITY_TRANSFORM <- "sqrt_relative"
+```
+
+The relative-abundance step reduces sensitivity to unequal total point effort among the minority of frames that depart from the nominal 100-point design, while the square-root step reduces the influence of highly dominant biological groups. Alternative transformations (`none`, `sqrt`, `relative`, `sqrt_relative`) remain configurable in `Scripts/00_config.R`.
 
 ## Bray–Curtis resemblance
 
@@ -869,41 +987,54 @@ Default response:
 Bray–Curtis dissimilarity among frame-level biological assemblages
 ```
 
-Candidate predictors:
+The pipeline deliberately separates **frame-level** and **dive-level** predictors.
+
+### Frame-level predictors
 
 ```text
 depth_m
 temperature
-lat
-long
 frame_substrate_class
 frame_relief_class
-dive_id / site where appropriate
 ```
+
+These are tested at the frame level, with permutations restricted within `dive_id` where the design supports it.
+
+### Dive-level predictors
+
+```text
+lat
+long
+```
+
+Latitude and longitude are generally constant for all frames belonging to the same dive in this example. They therefore cannot be meaningfully tested as frame-level predictors while simultaneously restricting permutations within dive. For latitude/longitude PERMANOVA, the community matrix is first aggregated to the **dive level**, giving one assemblage sample per dive.
 
 ### Example hypotheses
 
-**Depth:** community composition does not vary systematically with depth.
+**Depth:** community composition does not vary systematically with depth within the sampled dive structure.
 
-**Temperature:** community composition does not vary systematically with temperature.
+**Temperature:** community composition does not vary systematically with temperature within the sampled dive structure.
 
 **Substrate:** centroids of community composition do not differ among frame substrate classes.
 
-**Combined model:** after accounting for other included terms, the tested predictor explains no additional assemblage variation.
+**Dive-level latitude:** aggregated dive assemblage composition does not vary systematically with latitude.
 
-### Example model
+**Combined frame model:** after accounting for the other included frame-level terms, the tested predictor explains no additional assemblage variation.
+
+### Example frame-level model
 
 ```r
 adonis2(
-  bray_curtis ~ depth_m + temperature + lat + long +
+  community ~ depth_m + temperature +
     frame_substrate_class + frame_relief_class,
   data = frame_metadata,
   permutations = 9999,
+  by = "margin",
   strata = frame_metadata$dive_id
 )
 ```
 
-The exact formula is configurable.
+Latitude and longitude are handled separately at the dive level rather than being included in this within-dive permutation model. The exact formula and permutation count are configurable.
 
 ### Outputs to interpret
 
@@ -942,7 +1073,7 @@ Frames from the same dive are not automatically independent. The default design 
 
 # CAP / dbRDA
 
-CAP here refers to a constrained ordination of ecological resemblance, implemented using a distance-based constrained method such as `vegan::capscale()` or `dbrda()`.
+CAP here refers to constrained analysis of community resemblance. The current pipeline implements the worked example using `vegan::dbrda()` with Bray–Curtis dissimilarity and reports overall, term-level and constrained-axis permutation tests.
 
 ## What are we testing?
 
@@ -954,19 +1085,21 @@ Bray–Curtis community resemblance.
 
 ### Candidate explanatory variables
 
+The worked-example frame-level constrained ordination uses:
+
 ```text
 depth_m
 temperature
-lat
-long
 frame_substrate_class
 frame_relief_class
 ```
 
+Latitude/longitude are not placed into the same frame-level constrained model because they are primarily dive-level variables in this example dataset.
+
 ### Example
 
 ```r
-capscale(
+dbrda(
   community ~ depth_m + temperature + frame_substrate_class +
     frame_relief_class,
   data = frame_metadata,
@@ -1302,8 +1435,10 @@ This lets the README remain comprehensive without forcing every diagnostic table
 All user-facing options should be concentrated in `Scripts/00_config.R`, including:
 
 - target point count;
+- acceptable total-point range for inferential community models;
+- minimum assigned biological points;
 - biological-unit resolution;
-- square-root/other transformation;
+- relative-abundance/square-root/other community transformation;
 - Bray–Curtis distance;
 - permutation number;
 - candidate environmental variables;
@@ -1469,23 +1604,28 @@ That template is the core mechanism that makes this repository expandable.
 | Canonical repository structure | Established |
 | Canonical input filenames | Established |
 | Example prerequisite sheets | Included |
-| Initial input validator | Included |
-| Central R configuration | Scaffolded |
-| Existing transformation scripts | Retained under `Scripts/legacy_current/` |
-| Refactor transformations to immutable `Sheets/` → `Data/Intermediate/` contract | Next |
-| Point/VME final data split | Logic developed; path refactor pending |
-| Frame substrate characterisation | Logic developed; path refactor pending |
-| Existing ecological analysis tests | Existing pipeline retained; modular refactor pending |
-| NMDS module with configurable latitude palette | Planned |
-| PERMANOVA + PERMDISP module | Planned/refactor |
-| CAP/dbRDA module | Planned |
-| Regression + log-LM + GAM module | Planned/refactor |
-| Automated eligible t-test/ANOVA module | Planned |
-| GitHub-linked worked-example figures/results | Generated as analysis modules are finalised |
+| Input validator with join, metadata-coverage and point-design QC | Implemented and processing-tested |
+| Central R configuration | Implemented |
+| Existing transformation implementations | Retained under `Scripts/legacy_current/` for provenance |
+| Non-destructive `Sheets/` → `Data/Intermediate/` processing wrappers | Implemented and processing-tested |
+| Point/VME final data split | Implemented and processing-tested |
+| Frame substrate characterisation | Implemented and processing-tested |
+| Processing manifest | Implemented |
+| Shared R analysis helpers | Implemented; local R runtime test next |
+| Point/frame ecological QC module | Implemented; local R runtime test next |
+| Alpha-diversity module | Implemented; local R runtime test next |
+| NMDS module with configurable latitude palette | Implemented; local R runtime test next |
+| PERMANOVA + PERMDISP module | Implemented; local R runtime test next |
+| CAP/dbRDA module | Implemented; local R runtime test next |
+| Regression + log-LM + GAM module | Implemented; local R runtime test next |
+| Automated eligible t-test/ANOVA module | Implemented; local R runtime test next |
+| Taxon-response module | Implemented; local R runtime test next |
+| VME occurrence module | Implemented; local R runtime test next |
+| GitHub-linked worked-example figures/results | Populate after local R execution is verified |
 | Software lockfile | Planned |
 
 ---
 
 ## Immediate Next Development Step
 
-The next formal development stage is to refactor each of the already-tested enrichment scripts so that it reads an immutable source/intermediate file and writes the correctly numbered file in `Data/Intermediate/`. Once that contract is stable, the ecology analysis can be separated into modular R scripts and this README can begin embedding the **actual generated tables and figures from the worked example**.
+The non-destructive processing contract is now functioning on the worked example. The next formal development stage is to execute the modular R analysis suite locally, review every generated table/model/figure, correct any runtime or statistical-design issues revealed by that test, and then link the verified worked-example outputs directly into this README. Package versions will subsequently be locked once the analysis suite is stable.

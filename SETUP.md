@@ -167,7 +167,13 @@ Check whether `Rscript` is available:
 Rscript --version
 ```
 
-The statistical pipeline will ultimately document and lock its package requirements. RStudio is optional: it is useful for editing and interactive exploration, but the formal scripts should remain runnable from Terminal using `Rscript`.
+Install the required analysis packages once:
+
+```bash
+Rscript Scripts/install_R_packages.R
+```
+
+RStudio is optional: it is useful for editing and interactive exploration, but the formal scripts are designed to remain runnable from Terminal using `Rscript`. Package versions will be locked once the analysis suite has completed runtime validation.
 
 ## 3.5 GitHub authentication
 
@@ -452,7 +458,7 @@ Good:
 
 ```bash
 cd ~/Documents/GitHub/BIIGLE-Benthic-Pipeline
-./Scripts/01_add_lat_long.sh
+./Scripts/01_add_lat_long.sh .
 ```
 
 Avoid:
@@ -913,7 +919,28 @@ statistical modules    VME modules
         README.md
 ```
 
-The next phase is to refactor and test the numbered processing and statistical modules against the worked-example dataset.
+The canonical processing wrappers and modular statistical scripts are now defined. The worked-example workflow should be tested in two phases:
+
+```bash
+./Scripts/run_processing_pipeline.sh .
+```
+
+Review `Analyses/00_Quality_Control/` and the files in `Data/Final/`.
+
+Then:
+
+```bash
+Rscript Scripts/install_R_packages.R
+./Scripts/run_analysis_pipeline.sh .
+```
+
+After inspecting the generated tables and figures, commit the verified outputs to GitHub.
+
+A completely fresh rerun can be performed with:
+
+```bash
+./Scripts/run_full_pipeline.sh .
+```
 
 ---
 
@@ -926,6 +953,9 @@ cd ~/Documents/GitHub/BIIGLE-Benthic-Pipeline
 git pull
 ls -lah Sheets
 ./Scripts/00_validate_inputs.sh .
+./Scripts/run_processing_pipeline.sh .
+Rscript Scripts/install_R_packages.R
+./Scripts/run_analysis_pipeline.sh .
 ```
 
 For normal development after checking outputs:
