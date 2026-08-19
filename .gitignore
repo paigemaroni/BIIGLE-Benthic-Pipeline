@@ -1,3 +1,7 @@
 
 # macOS
 .DS_Store
+
+# Reproducible generated intermediate datasets
+Data/Intermediate/*.csv
+!Data/Intermediate/.gitkeep

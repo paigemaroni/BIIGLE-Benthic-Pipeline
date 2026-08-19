@@ -234,7 +234,7 @@ for (response in responses) {
 
     if (!eligible_for_inference) next
 
-    test <- blocked_partial_f_test(dat)
+    test_result <- blocked_partial_f_test(dat)
 
     global_results[[length(global_results) + 1]] <- tibble(
       response = response,
@@ -246,12 +246,12 @@ for (response in responses) {
       groups = nlevels(dat$group),
       dives_with_within_factor_variation =
         prep$dives_with_within_factor_variation,
-      df_factor = test$df_factor,
-      statistic = test$f_statistic,
-      p_value = test$p_value,
-      partial_r_squared = test$partial_r_squared,
-      permutations = test$permutations,
-      aliased_coefficients = test$aliased_coefficients,
+      df_factor = test_result$df_factor,
+      statistic = test_result$f_statistic,
+      p_value = test_result$p_value,
+      partial_r_squared = test_result$partial_r_squared,
+      permutations = test_result$permutations,
+      aliased_coefficients = test_result$aliased_coefficients,
       permutation_restriction = "factor_labels_permuted_within_dive"
     )
 
