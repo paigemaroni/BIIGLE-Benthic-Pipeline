@@ -5,7 +5,7 @@ ROOT="$(cd "$ROOT" && pwd)"
 INPUT="$ROOT/Data/Intermediate/03_annotations_taxonomy.csv"
 LOOKUP="$ROOT/Sheets/depth_temp_frameid.csv"
 OUTPUT="$ROOT/Data/Intermediate/04_annotations_environment.csv"
-IMPL="$ROOT/Scripts/legacy_current/04_add_frame_metadata_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/04_add_frame_metadata_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")"
 for f in "$INPUT" "$LOOKUP" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done

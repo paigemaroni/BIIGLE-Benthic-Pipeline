@@ -6,7 +6,7 @@ INPUT="$ROOT/Data/Intermediate/02_annotations_top_level.csv"
 LOOKUP="$ROOT/Sheets/taxon_list.csv"
 OUTPUT="$ROOT/Data/Intermediate/03_annotations_taxonomy.csv"
 QC="$ROOT/Analyses/00_Quality_Control"
-IMPL="$ROOT/Scripts/legacy_current/03_add_taxonomy_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/03_add_taxonomy_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")" "$QC"
 for f in "$INPUT" "$LOOKUP" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done

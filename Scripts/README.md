@@ -62,7 +62,7 @@ Run all stages with:
 
 The scripts read the canonical prerequisite files from `Sheets/`, leave those files unchanged, and write numbered datasets to `Data/Intermediate/` and `Data/Final/`.
 
-During the current development version, Steps 01–07 are non-destructive wrappers around the tested implementations retained in `legacy_current/`. This preserves the already-validated lookup and hierarchy logic while enforcing the new repository folder contract.
+Steps 01–07 are non-destructive wrappers around versioned implementations retained in `internal/`. The `internal/` scripts are repository dependencies bundled with the pipeline; users normally run the numbered wrapper scripts rather than the implementation files directly.
 
 ## Analysis helpers
 
@@ -122,4 +122,4 @@ Rscript Scripts/install_R_packages.R
 
 ## Provenance
 
-`legacy_current/` retains the previously tested development scripts. Do not run these directly for the canonical repository workflow unless debugging historical behaviour.
+`internal/` contains versioned implementation scripts required by Steps 01–07. Do not run these directly for the canonical repository workflow unless debugging a processing stage.

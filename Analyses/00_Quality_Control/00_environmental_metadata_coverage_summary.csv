@@ -1,0 +1,9 @@
+metric,value
+total_frames,525
+matched_frames,209
+unmatched_frames,316
+frame_coverage_percent,39.8
+total_dives,19
+dives_complete_metadata,8
+dives_no_metadata,11
+dives_partial_metadata,0

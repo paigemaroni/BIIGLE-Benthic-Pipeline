@@ -5,7 +5,7 @@ ROOT="$(cd "$ROOT" && pwd)"
 INPUT="$ROOT/Sheets/combined_biigle_annotations.csv"
 LOOKUP="$ROOT/Sheets/gl_latlong.csv"
 OUTPUT="$ROOT/Data/Intermediate/01_annotations_latlong.csv"
-IMPL="$ROOT/Scripts/legacy_current/01_add_lat_long_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/01_add_lat_long_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")"
 for f in "$INPUT" "$LOOKUP" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done

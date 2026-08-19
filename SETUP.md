@@ -76,7 +76,7 @@ BIIGLE-Benthic-Pipeline/
 │   ├── 00_validate_inputs.sh
 │   ├── [numbered processing scripts]
 │   ├── [numbered analysis scripts]
-│   └── legacy_current/
+│   └── internal/
 │
 ├── Data/
 │   ├── Intermediate/

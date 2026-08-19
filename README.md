@@ -459,7 +459,7 @@ Matching should use the ordered VME hierarchy, with exact matching preferred and
 
 # Processing Workflow
 
-Each formal stage produces a **new numbered intermediate dataset** and leaves the researcher-supplied files in `Sheets/` unchanged. The canonical wrapper scripts now enforce this non-destructive contract. During the current development version, those wrappers call the already-tested implementations retained under `Scripts/legacy_current/`; this preserves validated matching logic while keeping the public workflow stable.
+Each formal stage produces a **new numbered intermediate dataset** and leaves the researcher-supplied files in `Sheets/` unchanged. The canonical wrapper scripts now enforce this non-destructive contract. The numbered wrapper scripts call versioned processing implementations under `Scripts/internal/`. This keeps the public workflow stable while bundling every required dependency inside the repository.
 
 The entire processing phase can be run from the repository root with:
 
@@ -1606,7 +1606,7 @@ That template is the core mechanism that makes this repository expandable.
 | Example prerequisite sheets | Included |
 | Input validator with join, metadata-coverage and point-design QC | Implemented and processing-tested |
 | Central R configuration | Implemented |
-| Existing transformation implementations | Retained under `Scripts/legacy_current/` for provenance |
+| Existing transformation implementations | Retained under `Scripts/internal/` as versioned processing implementations |
 | Non-destructive `Sheets/` → `Data/Intermediate/` processing wrappers | Implemented and processing-tested |
 | Point/VME final data split | Implemented and processing-tested |
 | Frame substrate characterisation | Implemented and processing-tested |

@@ -4,7 +4,7 @@ ROOT="${1:-.}"
 ROOT="$(cd "$ROOT" && pwd)"
 INPUT="$ROOT/Data/Intermediate/01_annotations_latlong.csv"
 OUTPUT="$ROOT/Data/Intermediate/02_annotations_top_level.csv"
-IMPL="$ROOT/Scripts/legacy_current/02_add_top_level_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/02_add_top_level_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")"
 for f in "$INPUT" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done

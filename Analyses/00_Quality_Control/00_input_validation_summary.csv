@@ -4,5 +4,10 @@ gl_latlong.csv,PASS,28 rows; missing required columns: none
 depth_temp_frameid.csv,PASS,395 rows; missing required columns: none
 taxon_list.csv,PASS,288 rows; missing required columns: none
 vme_taxon_list.csv,PASS,58 rows; missing required columns: none
+gl_latlong duplicate keys,PASS,no conflicting duplicate FullID values
 JOIN dive_id ↔ FullID,PASS,19/19 unique dives matched
-JOIN filename ↔ FrameID,WARNING,209/525 unique BIIGLE frames matched
+depth_temp_frameid duplicate keys,PASS,no conflicting duplicate FrameID values
+JOIN filename ↔ FrameID,WARNING,209/525 unique BIIGLE frames matched (39.8% coverage)
+Environmental metadata by dive,WARNING,8/19 dives complete; 11 with no frame metadata; 0 partially matched
+Point-sampled frame universe,PASS,522/525 raw-export frames contain at least one non-VME Point annotation; 3 frame(s) are VME-only/no-random-point frames
+Random-point design (target 100),WARNING,430/522 point-sampled frames resolve to exactly 100 unique non-VME Point annotation IDs; 92 point-sampled frame(s) flagged for review

@@ -5,7 +5,7 @@ ROOT="$(cd "$ROOT" && pwd)"
 INPUT="$ROOT/Data/Intermediate/05_annotations_vme_taxonomy.csv"
 OUTPUT="$ROOT/Data/Intermediate/06_annotations_frame_substrate.csv"
 ANALYSIS_DIR="$ROOT/Analyses/01_Frame_Composition"
-IMPL="$ROOT/Scripts/legacy_current/06_add_frame_substrate_class_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/06_add_frame_substrate_class_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")" "$ANALYSIS_DIR"
 for f in "$INPUT" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done

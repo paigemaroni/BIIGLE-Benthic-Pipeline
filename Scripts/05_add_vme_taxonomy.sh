@@ -6,7 +6,7 @@ INPUT="$ROOT/Data/Intermediate/04_annotations_environment.csv"
 LOOKUP="$ROOT/Sheets/vme_taxon_list.csv"
 OUTPUT="$ROOT/Data/Intermediate/05_annotations_vme_taxonomy.csv"
 QC="$ROOT/Analyses/00_Quality_Control"
-IMPL="$ROOT/Scripts/legacy_current/05_add_vme_taxonomy_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/05_add_vme_taxonomy_impl.sh"
 
 mkdir -p "$(dirname "$OUTPUT")" "$QC"
 for f in "$INPUT" "$LOOKUP" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done
@@ -28,6 +28,5 @@ p=Path(sys.argv[1])
 with p.open(encoding='utf-8-sig',newline='') as f:
     rows=list(csv.DictReader(f))
 v=[r for r in rows if (r.get("top_level") or "").strip().casefold()=="vme"]
-resolved=sum(1 for r in v if any((r.get(c) or "").strip() for c in ("common_id_full","common_id_mid","common_id_short","kingdom")))
-print(f"STEP 05 COMPLETE: {len(v):,} VME rows; {resolved:,} taxonomically enriched -> {p}")
+print(f"STEP 05 COMPLETE: {len(v):,} VME rows processed; see 05_vme_taxonomy_unmatched.csv and 05_vme_taxonomy_ambiguous.csv for unresolved records -> {p}")
 PY

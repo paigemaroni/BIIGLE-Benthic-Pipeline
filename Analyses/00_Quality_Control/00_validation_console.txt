@@ -2,8 +2,32 @@ BIIGLE input validation
 =======================
 PASS     combined_biigle_annotations.csv: 55,096 rows; missing required columns: none
 PASS     gl_latlong.csv: 28 rows; missing required columns: none
-PASS     depth_temp_frameid.csv: 220 rows; missing required columns: none
+PASS     depth_temp_frameid.csv: 395 rows; missing required columns: none
 PASS     taxon_list.csv: 288 rows; missing required columns: none
 PASS     vme_taxon_list.csv: 58 rows; missing required columns: none
+PASS     gl_latlong duplicate keys: no conflicting duplicate FullID values
 PASS     JOIN dive_id ↔ FullID: 19/19 unique dives matched
-WARNING  JOIN filename ↔ FrameID: 105/525 unique BIIGLE frames matched
+PASS     depth_temp_frameid duplicate keys: no conflicting duplicate FrameID values
+WARNING  JOIN filename ↔ FrameID: 209/525 unique BIIGLE frames matched (39.8% coverage)
+WARNING  Environmental metadata by dive: 8/19 dives complete; 11 with no frame metadata; 0 partially matched
+PASS     Point-sampled frame universe: 522/525 raw-export frames contain at least one non-VME Point annotation; 3 frame(s) are VME-only/no-random-point frames
+WARNING  Random-point design (target 100): 430/522 point-sampled frames resolve to exactly 100 unique non-VME Point annotation IDs; 92 point-sampled frame(s) flagged for review
+
+Environmental metadata universe
+-------------------------------
+Total BIIGLE frames:            525
+Frames with depth/temp metadata:      209
+Frames without metadata:              316
+Frame metadata coverage:            39.8%
+Dives with complete metadata:           8/19
+Dives with no frame metadata:          11/19
+Partially matched dives:                0/19
+
+Random-point design
+-------------------
+Target unique points/frame:           100
+Raw-export frames:                    525
+Point-sampled frames:                 522
+VME-only/no-point frames:               3
+Point frames exactly at target:       430/522
+Point frames flagged for review:       92/522

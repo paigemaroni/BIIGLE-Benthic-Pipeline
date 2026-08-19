@@ -5,7 +5,7 @@ ROOT="$(cd "$ROOT" && pwd)"
 INPUT="$ROOT/Data/Intermediate/06_annotations_frame_substrate.csv"
 POINT="$ROOT/Data/Final/point_annotations.csv"
 VME="$ROOT/Data/Final/vme_annotations.csv"
-IMPL="$ROOT/Scripts/legacy_current/07_split_point_and_vme_CURRENT.sh"
+IMPL="$ROOT/Scripts/internal/07_split_point_and_vme_impl.sh"
 
 mkdir -p "$ROOT/Data/Final"
 for f in "$INPUT" "$IMPL"; do [[ -f "$f" ]] || { echo "ERROR: missing $f" >&2; exit 1; }; done
