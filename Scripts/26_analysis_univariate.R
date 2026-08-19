@@ -7,6 +7,7 @@ cat("==================================================\n")
 
 a <- prepare_point_analysis()
 alpha <- frame_alpha_diversity(a$community_matrix, a$frame_summary)
+alpha_model <- alpha %>% filter(alpha_model_eligible)
 
 out_dir <- file.path(ANALYSES_DIR, "07_Univariate_Tests")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -22,7 +23,7 @@ responses <- c(
 
 factors <- intersect(
   c("frame_substrate_class", "frame_relief_class", "dive_id"),
-  names(alpha)
+  names(alpha_model)
 )
 
 global_results <- list()
@@ -32,7 +33,7 @@ for (response in responses) {
   if (!response %in% names(alpha)) next
 
   for (factor_name in factors) {
-    dat <- alpha %>%
+    dat <- alpha_model %>%
       filter(
         !is.na(.data[[response]]),
         !is.na(.data[[factor_name]]),

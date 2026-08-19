@@ -8,6 +8,14 @@ cat("==================================\n")
 a <- prepare_point_analysis()
 counts <- a$community_counts
 frames <- a$frame_summary
+eligible_frame_ids <- frames %>%
+  filter(
+    n_points >= MODEL_MIN_TOTAL_POINTS,
+    n_points <= MODEL_MAX_TOTAL_POINTS,
+    n_biotic_assigned >= MIN_BIOTIC_POINTS
+  ) %>%
+  pull(filename)
+
 
 out_dir <- file.path(ANALYSES_DIR, "08_Taxon_Responses")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -27,7 +35,7 @@ write_csv(taxon_rank, file.path(out_dir, "27_taxon_prevalence.csv"))
 top_taxa <- head(taxon_rank$community_unit, TOP_N_TAXA)
 
 grid <- tidyr::expand_grid(
-  filename = frames$filename,
+  filename = eligible_frame_ids,
   community_unit = top_taxa
 ) %>%
   left_join(

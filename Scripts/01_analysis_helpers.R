@@ -370,38 +370,95 @@ community_model_keep <- function(frame_summary, community_matrix) {
 }
 
 frame_alpha_diversity <- function(community_matrix, frame_summary) {
-  if (nrow(community_matrix) == 0) {
-    return(tibble())
-  }
+  # Alpha diversity is reported against the COMPLETE point-sampled frame
+  # universe, including frames with zero resolved Biotic points.
+  #
+  # For zero-Biotic frames:
+  #   observed richness = 0 (nothing biological was observed at random points)
+  #   Shannon / inverse Simpson / Pielou = NA (no assemblage distribution exists)
+  #   rarefied richness = NA (insufficient biological observations)
+  #
+  # Inferential alpha-diversity models should use alpha_model_eligible, which
+  # enforces both the configured overall point-effort range and minimum number
+  # of resolved Biotic points.
 
-  totals <- rowSums(community_matrix)
-  richness <- rowSums(community_matrix > 0)
-  shannon <- diversity(community_matrix, index = "shannon")
-  invsimpson <- diversity(community_matrix, index = "invsimpson")
-  evenness <- ifelse(richness > 1, shannon / log(richness), NA_real_)
-
-  rarefied <- rep(NA_real_, nrow(community_matrix))
-  eligible <- totals >= RAREFACTION_N
-
-  if (any(eligible)) {
-    rarefied[eligible] <- rarefy(
-      community_matrix[eligible, , drop = FALSE],
-      sample = RAREFACTION_N
+  base <- frame_summary %>%
+    mutate(
+      assigned_biotic_points = n_biotic_assigned,
+      observed_common_id_richness = 0,
+      rarefied_common_id_richness = NA_real_,
+      shannon_common_id_diversity = NA_real_,
+      inverse_simpson_common_id_diversity = NA_real_,
+      pielou_evenness = NA_real_
     )
+
+  if (nrow(community_matrix) > 0) {
+    totals <- rowSums(community_matrix)
+    richness <- rowSums(community_matrix > 0)
+    shannon <- diversity(community_matrix, index = "shannon")
+    invsimpson <- diversity(community_matrix, index = "invsimpson")
+    evenness <- ifelse(richness > 1, shannon / log(richness), NA_real_)
+
+    rarefied <- rep(NA_real_, nrow(community_matrix))
+    eligible <- totals >= RAREFACTION_N
+
+    if (any(eligible)) {
+      rarefied[eligible] <- rarefy(
+        community_matrix[eligible, , drop = FALSE],
+        sample = RAREFACTION_N
+      )
+    }
+
+    calculated <- tibble(
+      filename = rownames(community_matrix),
+      assigned_biotic_points_calc = totals,
+      observed_common_id_richness_calc = richness,
+      rarefied_common_id_richness_calc = rarefied,
+      shannon_common_id_diversity_calc = shannon,
+      inverse_simpson_common_id_diversity_calc = invsimpson,
+      pielou_evenness_calc = evenness
+    )
+
+    base <- base %>%
+      left_join(calculated, by = "filename") %>%
+      mutate(
+        assigned_biotic_points = coalesce(
+          assigned_biotic_points_calc,
+          assigned_biotic_points
+        ),
+        observed_common_id_richness = coalesce(
+          observed_common_id_richness_calc,
+          observed_common_id_richness
+        ),
+        rarefied_common_id_richness = rarefied_common_id_richness_calc,
+        shannon_common_id_diversity = shannon_common_id_diversity_calc,
+        inverse_simpson_common_id_diversity = inverse_simpson_common_id_diversity_calc,
+        pielou_evenness = pielou_evenness_calc
+      ) %>%
+      select(-ends_with("_calc"))
   }
 
-  alpha <- tibble(
-    filename = rownames(community_matrix),
-    assigned_biotic_points = totals,
-    observed_common_id_richness = richness,
-    rarefied_common_id_richness = rarefied,
-    shannon_common_id_diversity = shannon,
-    inverse_simpson_common_id_diversity = invsimpson,
-    pielou_evenness = evenness
-  )
-
-  alpha %>%
-    left_join(frame_summary, by = "filename")
+  base %>%
+    mutate(
+      has_resolved_biota = assigned_biotic_points > 0,
+      rarefaction_eligible = assigned_biotic_points >= RAREFACTION_N,
+      alpha_model_eligible =
+        n_points >= MODEL_MIN_TOTAL_POINTS &
+        n_points <= MODEL_MAX_TOTAL_POINTS &
+        assigned_biotic_points >= MIN_BIOTIC_POINTS,
+      alpha_model_exclusion_reason = case_when(
+        n_points < MODEL_MIN_TOTAL_POINTS ~ paste0(
+          "total_points_below_", MODEL_MIN_TOTAL_POINTS
+        ),
+        n_points > MODEL_MAX_TOTAL_POINTS ~ paste0(
+          "total_points_above_", MODEL_MAX_TOTAL_POINTS
+        ),
+        assigned_biotic_points < MIN_BIOTIC_POINTS ~ paste0(
+          "biotic_points_below_", MIN_BIOTIC_POINTS
+        ),
+        TRUE ~ "eligible"
+      )
+    )
 }
 
 prepare_point_analysis <- function() {

@@ -7,6 +7,7 @@ cat("=======================================\n")
 
 a <- prepare_point_analysis()
 alpha <- frame_alpha_diversity(a$community_matrix, a$frame_summary)
+alpha_model <- alpha %>% filter(alpha_model_eligible)
 
 out_dir <- file.path(ANALYSES_DIR, "06_Environmental_Associations")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
@@ -22,7 +23,7 @@ responses <- c(
 
 predictors <- intersect(
   CONTINUOUS_ENVIRONMENTAL_VARIABLES,
-  names(alpha)
+  names(alpha_model)
 )
 
 results <- list()
@@ -32,7 +33,7 @@ for (response in responses) {
   if (!response %in% names(alpha)) next
 
   for (predictor in predictors) {
-    dat <- alpha %>%
+    dat <- alpha_model %>%
       select(all_of(c(response, predictor, "dive_id"))) %>%
       filter(
         is.finite(safe_num(.data[[response]])),
