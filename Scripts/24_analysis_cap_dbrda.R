@@ -332,7 +332,7 @@ if (nrow(dive_meta) >= 6 &&
 
     write_csv(
       tibble(
-        n_dives = nrow(dive_dat),
+        n_dives = nrow(dive_meta),
         predictors = "lat + long",
         r_squared = as.numeric(dive_r2_info$r.squared),
         adjusted_r_squared = as.numeric(dive_r2_info$adj.r.squared),
