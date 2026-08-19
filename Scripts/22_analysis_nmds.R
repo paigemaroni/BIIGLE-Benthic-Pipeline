@@ -6,12 +6,14 @@ cat("Analysis 22: Bray-Curtis and NMDS\n")
 cat("=================================\n")
 
 a <- prepare_point_analysis()
-mat <- a$community_matrix
-meta <- a$frame_summary
+mat_all <- a$community_matrix
+meta_all <- a$frame_summary
 
-eligible_frames <- community_model_keep(meta, mat)
-mat <- mat[eligible_frames, , drop = FALSE]
+eligible_frames <- community_model_keep(meta_all, mat_all)
+mat <- mat_all[eligible_frames, , drop = FALSE]
 mat <- mat[, colSums(mat) > 0, drop = FALSE]
+meta <- meta_all %>% filter(filename %in% rownames(mat))
+meta <- meta[match(rownames(mat), meta$filename), , drop = FALSE]
 
 if (nrow(mat) < 4 || ncol(mat) < 2) {
   stop("Too few eligible frames or biological groups for NMDS.", call. = FALSE)
@@ -31,6 +33,18 @@ write_matrix_csv(
   row_name = "filename"
 )
 
+# Bray-Curtis = 1 means complete dissimilarity; for non-negative community
+# data this commonly reflects pairs with no shared community units. Report it
+# explicitly because many no-share pairs can make 2D NMDS difficult to fit.
+bray_values <- as.numeric(bray)
+n_pairs <- length(bray_values)
+n_complete_dissimilarity <- sum(bray_values >= (1 - 1e-12), na.rm = TRUE)
+pct_complete_dissimilarity <- if (n_pairs > 0) {
+  100 * n_complete_dissimilarity / n_pairs
+} else {
+  NA_real_
+}
+
 set.seed(RANDOM_SEED)
 nmds <- metaMDS(
   mat_t,
@@ -49,20 +63,39 @@ scores_out <- as_tibble(site_scores) %>%
 
 write_csv(scores_out, file.path(nmds_dir, "22_nmds_scores.csv"))
 
+stress_class <- dplyr::case_when(
+  nmds$stress < 0.05 ~ "excellent",
+  nmds$stress < 0.10 ~ "very_good",
+  nmds$stress < 0.20 ~ "potentially_useful_with_caution",
+  TRUE ~ "weak_two_dimensional_representation"
+)
+
 write_csv(
   tibble(
     metric = c(
-      "stress", "dimensions", "frames", "biological_groups",
-      "distance_method", "community_transform", "minimum_biotic_points"
+      "stress", "stress_interpretation", "dimensions",
+      "point_sampled_frames", "eligible_frames", "excluded_frames",
+      "biological_groups", "distance_method", "community_transform",
+      "minimum_biotic_points", "minimum_total_points", "maximum_total_points",
+      "bray_curtis_pairs", "complete_dissimilarity_pairs",
+      "complete_dissimilarity_pairs_percent"
     ),
     value = c(
       format(nmds$stress, digits = 8),
+      stress_class,
       NMDS_DIMENSIONS,
+      nrow(meta_all),
       nrow(mat_t),
+      nrow(meta_all) - nrow(mat_t),
       ncol(mat_t),
       DISTANCE_METHOD,
       COMMUNITY_TRANSFORM,
-      MIN_BIOTIC_POINTS
+      MIN_BIOTIC_POINTS,
+      MODEL_MIN_TOTAL_POINTS,
+      MODEL_MAX_TOTAL_POINTS,
+      n_pairs,
+      n_complete_dissimilarity,
+      format(pct_complete_dissimilarity, digits = 8)
     )
   ),
   file.path(nmds_dir, "22_nmds_model_summary.csv")
@@ -71,6 +104,9 @@ write_csv(
 axis_x <- names(site_scores)[1]
 axis_y <- names(site_scores)[2]
 
+# Latitude is useful as a visual gradient at frame level, but its significance
+# is NOT tested at frame level because latitude is effectively repeated within
+# dive. Dive-level inference is handled below using dive centroids.
 lat_plot_data <- scores_out %>% filter(!is.na(lat))
 
 if (nrow(lat_plot_data) > 0) {
@@ -115,10 +151,7 @@ plot_factor_nmds <- function(variable, title, file_stub) {
     ) +
     theme_bw(base_size = 10)
 
-  if (
-    SHOW_NMDS_ELLIPSES &&
-    variable == NMDS_ELLIPSE_GROUP
-  ) {
+  if (SHOW_NMDS_ELLIPSES && variable == NMDS_ELLIPSE_GROUP) {
     group_counts <- dat %>% count(.data[[variable]])
     eligible <- group_counts %>% filter(n >= 3) %>% pull(1)
     ellipse_dat <- dat %>% filter(.data[[variable]] %in% eligible)
@@ -148,31 +181,126 @@ plot_factor_nmds(
   "Fig_08_NMDS_Relief"
 )
 
-# Fit environmental variables separately so missing depth/temperature does not
-# discard frames from latitude/longitude fits.
-envfit_rows <- list()
+# -------------------------------------------------------------------------
+# Frame-level environmental fits
+# -------------------------------------------------------------------------
+# Depth, temperature, substrate and relief may vary among frames. Their
+# permutation tests are restricted within dive to respect repeated sampling.
+# Latitude and longitude are deliberately excluded here because they are
+# effectively dive-level predictors in this worked example.
+frame_envfit_variables <- intersect(
+  c("depth_m", "temperature", "frame_substrate_class", "frame_relief_class"),
+  names(scores_out)
+)
 
-for (variable in ENVIRONMENTAL_VARIABLES) {
-  if (!variable %in% names(scores_out)) next
+frame_envfit_rows <- list()
 
+for (variable in frame_envfit_variables) {
   vals <- scores_out[[variable]]
-  keep_var <- !is.na(vals) & as.character(vals) != ""
+  keep_var <- !is.na(vals) & as.character(vals) != "" & !is.na(scores_out$dive_id)
 
-  if (sum(keep_var) < 4) next
+  dat <- scores_out[keep_var, , drop = FALSE]
+  if (nrow(dat) < 4) next
 
-  score_matrix <- as.matrix(scores_out[keep_var, c(axis_x, axis_y), drop = FALSE])
-  env_data <- data.frame(value = vals[keep_var])
+  score_matrix <- as.matrix(dat[, c(axis_x, axis_y), drop = FALSE])
+  env_data <- data.frame(value = dat[[variable]])
 
   if (variable %in% CONTINUOUS_ENVIRONMENTAL_VARIABLES) {
     env_data$value <- safe_num(env_data$value)
     good <- is.finite(env_data$value)
     score_matrix <- score_matrix[good, , drop = FALSE]
     env_data <- env_data[good, , drop = FALSE]
+    dat <- dat[good, , drop = FALSE]
     if (nrow(env_data) < 4 || length(unique(env_data$value)) < 3) next
   } else {
-    env_data$value <- factor(env_data$value)
+    env_data$value <- droplevels(factor(env_data$value))
     if (nlevels(env_data$value) < 2) next
   }
+
+  set.seed(RANDOM_SEED)
+  fit <- envfit(
+    score_matrix,
+    env_data,
+    permutations = N_PERMUTATIONS,
+    strata = dat$dive_id,
+    na.rm = TRUE
+  )
+
+  if (variable %in% CONTINUOUS_ENVIRONMENTAL_VARIABLES) {
+    vec <- scores(fit, display = "vectors")
+    frame_envfit_rows[[length(frame_envfit_rows) + 1]] <- tibble(
+      variable = variable,
+      variable_type = "continuous",
+      axis1 = vec[1, 1],
+      axis2 = vec[1, 2],
+      r_squared = unname(fit$vectors$r[[1]]),
+      p_value = unname(fit$vectors$pvals[[1]]),
+      n = nrow(env_data),
+      n_dives = n_distinct(dat$dive_id),
+      permutation_restriction = PERMUTATION_STRATA_COLUMN
+    )
+  } else {
+    frame_envfit_rows[[length(frame_envfit_rows) + 1]] <- tibble(
+      variable = variable,
+      variable_type = "factor",
+      axis1 = NA_real_,
+      axis2 = NA_real_,
+      r_squared = unname(fit$factors$r[[1]]),
+      p_value = unname(fit$factors$pvals[[1]]),
+      n = nrow(env_data),
+      n_dives = n_distinct(dat$dive_id),
+      permutation_restriction = PERMUTATION_STRATA_COLUMN
+    )
+  }
+}
+
+if (length(frame_envfit_rows) > 0) {
+  frame_envfit_table <- bind_rows(frame_envfit_rows) %>%
+    mutate(p_adjusted = p.adjust(p_value, method = P_ADJUST_METHOD))
+
+  write_csv(
+    frame_envfit_table,
+    file.path(nmds_dir, "22_nmds_environmental_fit_frame_level.csv")
+  )
+}
+
+# -------------------------------------------------------------------------
+# Dive-centroid geographic fits
+# -------------------------------------------------------------------------
+# Average NMDS coordinates within dive and test latitude/longitude using the
+# dive (not the frame) as the inferential unit. These are exploratory
+# ordination overlays; formal geographic community tests are performed later
+# using dive-level PERMANOVA/dbRDA.
+dive_centroids <- scores_out %>%
+  filter(!is.na(dive_id)) %>%
+  group_by(dive_id) %>%
+  summarise(
+    axis1 = mean(.data[[axis_x]], na.rm = TRUE),
+    axis2 = mean(.data[[axis_y]], na.rm = TRUE),
+    lat = median_or_na(lat),
+    long = median_or_na(long),
+    eligible_frames = n(),
+    .groups = "drop"
+  )
+
+write_csv(
+  dive_centroids,
+  file.path(nmds_dir, "22_nmds_dive_centroids.csv")
+)
+
+dive_envfit_rows <- list()
+for (variable in intersect(c("lat", "long"), names(dive_centroids))) {
+  dat <- dive_centroids %>%
+    filter(
+      is.finite(.data[[variable]]),
+      is.finite(axis1),
+      is.finite(axis2)
+    )
+
+  if (nrow(dat) < 6 || n_distinct(dat[[variable]]) < 3) next
+
+  score_matrix <- as.matrix(dat[, c("axis1", "axis2"), drop = FALSE])
+  env_data <- data.frame(value = dat[[variable]])
 
   set.seed(RANDOM_SEED)
   fit <- envfit(
@@ -182,38 +310,41 @@ for (variable in ENVIRONMENTAL_VARIABLES) {
     na.rm = TRUE
   )
 
-  if (variable %in% CONTINUOUS_ENVIRONMENTAL_VARIABLES) {
-    vec <- scores(fit, display = "vectors")
-    envfit_rows[[length(envfit_rows) + 1]] <- tibble(
-      variable = variable,
-      variable_type = "continuous",
-      axis1 = vec[1, 1],
-      axis2 = vec[1, 2],
-      r_squared = unname(fit$vectors$r[[1]]),
-      p_value = unname(fit$vectors$pvals[[1]]),
-      n = nrow(env_data)
-    )
-  } else {
-    envfit_rows[[length(envfit_rows) + 1]] <- tibble(
-      variable = variable,
-      variable_type = "factor",
-      axis1 = NA_real_,
-      axis2 = NA_real_,
-      r_squared = unname(fit$factors$r[[1]]),
-      p_value = unname(fit$factors$pvals[[1]]),
-      n = nrow(env_data)
-    )
-  }
+  vec <- scores(fit, display = "vectors")
+  dive_envfit_rows[[length(dive_envfit_rows) + 1]] <- tibble(
+    variable = variable,
+    variable_type = "continuous",
+    axis1 = vec[1, 1],
+    axis2 = vec[1, 2],
+    r_squared = unname(fit$vectors$r[[1]]),
+    p_value = unname(fit$vectors$pvals[[1]]),
+    n_dives = nrow(dat),
+    permutation_restriction = "none_dive_is_unit"
+  )
 }
 
-if (length(envfit_rows) > 0) {
-  envfit_table <- bind_rows(envfit_rows) %>%
+if (length(dive_envfit_rows) > 0) {
+  dive_envfit_table <- bind_rows(dive_envfit_rows) %>%
     mutate(p_adjusted = p.adjust(p_value, method = P_ADJUST_METHOD))
-  write_csv(envfit_table, file.path(nmds_dir, "22_nmds_environmental_fit.csv"))
+
+  write_csv(
+    dive_envfit_table,
+    file.path(nmds_dir, "22_nmds_environmental_fit_dive_level.csv")
+  )
 }
 
 saveRDS(nmds, file.path(nmds_dir, "22_nmds_model.rds"))
 
-cat("NMDS frames: ", nrow(mat_t), "\n", sep = "")
+cat("Point-sampled frames: ", nrow(meta_all), "\n", sep = "")
+cat("NMDS-eligible frames: ", nrow(mat_t), "\n", sep = "")
+cat("Excluded by community-model QC: ", nrow(meta_all) - nrow(mat_t), "\n", sep = "")
 cat("NMDS groups: ", ncol(mat_t), "\n", sep = "")
-cat("Stress: ", format(nmds$stress, digits = 5), "\n", sep = "")
+cat("Stress: ", format(nmds$stress, digits = 5), " (", stress_class, ")\n", sep = "")
+cat(
+  "Bray-Curtis pairs at complete dissimilarity: ",
+  n_complete_dissimilarity, "/", n_pairs,
+  " (", round(pct_complete_dissimilarity, 2), "%)\n",
+  sep = ""
+)
+cat("Frame-level envfit permutations: restricted within dive\n")
+cat("Latitude/longitude envfit unit: dive centroid\n")
