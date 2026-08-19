@@ -166,6 +166,117 @@ extract_smooth_term <- function(fit) {
   )
 }
 
+# Fit mgcv::gam while capturing warnings and checking convergence. If the
+# default outer/Newton optimizer emits a step-failure/convergence warning, the
+# identical model is retried with outer/BFGS. A p-value is only carried into
+# inferential result tables when the final fit is warning-free for critical
+# convergence issues and fit$converged is TRUE.
+fit_gam_safely <- function(formula, data, family, method = "REML") {
+  run_fit <- function(optimizer_value) {
+    warnings <- character(0)
+    error_message <- NA_character_
+
+    fit <- tryCatch(
+      withCallingHandlers(
+        gam(
+          formula = formula,
+          data = data,
+          family = family,
+          method = method,
+          optimizer = optimizer_value
+        ),
+        warning = function(w) {
+          warnings <<- c(warnings, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
+      ),
+      error = function(e) {
+        error_message <<- conditionMessage(e)
+        NULL
+      }
+    )
+
+    critical_pattern <- paste(
+      c(
+        "step failure",
+        "fail(ed|ure)? to converge",
+        "did not converge",
+        "iteration limit",
+        "numerically 0 or 1",
+        "not positive definite"
+      ),
+      collapse = "|"
+    )
+
+    critical_warning <- if (length(warnings) == 0) {
+      FALSE
+    } else {
+      any(grepl(critical_pattern, warnings, ignore.case = TRUE))
+    }
+
+    fit_converged <- !is.null(fit) && isTRUE(fit$converged)
+    stable <- !is.null(fit) && fit_converged && !critical_warning
+
+    list(
+      fit = fit,
+      warnings = warnings,
+      error = error_message,
+      critical_warning = critical_warning,
+      fit_converged = fit_converged,
+      stable = stable,
+      optimizer = paste(optimizer_value, collapse = "/")
+    )
+  }
+
+  primary <- run_fit(c("outer", "newton"))
+
+  retry_needed <- (
+    is.null(primary$fit) ||
+    !primary$fit_converged ||
+    primary$critical_warning
+  )
+
+  if (retry_needed) {
+    retry <- run_fit(c("outer", "bfgs"))
+    retry$primary_warnings <- primary$warnings
+    retry$primary_error <- primary$error
+    retry$retried_with_bfgs <- TRUE
+    return(retry)
+  }
+
+  primary$primary_warnings <- character(0)
+  primary$primary_error <- NA_character_
+  primary$retried_with_bfgs <- FALSE
+  primary
+}
+
+fit_diagnostic_row <- function(
+    fit_info, community_unit, predictor, response_type, analysis_method) {
+  tibble(
+    community_unit = community_unit,
+    predictor = predictor,
+    response_type = response_type,
+    analysis_method = analysis_method,
+    optimizer_used = fit_info$optimizer,
+    retried_with_bfgs = fit_info$retried_with_bfgs,
+    fit_converged = fit_info$fit_converged,
+    critical_warning = fit_info$critical_warning,
+    stable_for_inference = fit_info$stable,
+    warnings = if (length(fit_info$warnings)) {
+      paste(unique(fit_info$warnings), collapse = " | ")
+    } else {
+      NA_character_
+    },
+    primary_warnings = if (length(fit_info$primary_warnings)) {
+      paste(unique(fit_info$primary_warnings), collapse = " | ")
+    } else {
+      NA_character_
+    },
+    error_message = fit_info$error,
+    primary_error = fit_info$primary_error
+  )
+}
+
 joint_wald_factor <- function(fit, factor_prefix = "group") {
   beta <- coef(fit)
   coef_names <- grep(paste0("^", factor_prefix), names(beta), value = TRUE)
@@ -236,6 +347,7 @@ continuous_predictors <- intersect(
 
 continuous_eligibility <- list()
 continuous_results <- list()
+fit_diagnostics <- list()
 
 for (taxon in top_taxa) {
   for (predictor in continuous_predictors) {
@@ -315,17 +427,18 @@ for (taxon in top_taxa) {
     if (!eligible) next
 
     # Presence: linear within-dive environmental effect.
-    presence_linear <- tryCatch(
-      gam(
-        presence ~ predictor_within + s(dive_id, bs = "re"),
-        data = dat,
-        family = binomial(),
-        method = "REML"
-      ),
-      error = function(e) NULL
+    presence_linear_info <- fit_gam_safely(
+      presence ~ predictor_within + s(dive_id, bs = "re"),
+      data = dat,
+      family = binomial()
     )
+    fit_diagnostics[[length(fit_diagnostics) + 1]] <- fit_diagnostic_row(
+      presence_linear_info, taxon, predictor, "frame_occurrence",
+      "binomial_linear_with_dive_random_intercept"
+    )
+    presence_linear <- presence_linear_info$fit
 
-    if (!is.null(presence_linear)) {
+    if (presence_linear_info$stable) {
       term <- extract_parametric_term(presence_linear, "predictor_within")
       sm <- summary(presence_linear)
 
@@ -352,18 +465,19 @@ for (taxon in top_taxa) {
     # Presence: nonlinear within-dive response.
     if (n_distinct(dat$predictor_within) >= 6) {
       k_value <- min(5, max(3, n_distinct(dat$predictor_within) - 1))
-      presence_smooth <- tryCatch(
-        gam(
-          presence ~ s(predictor_within, bs = "cs", k = k_value) +
-            s(dive_id, bs = "re"),
-          data = dat,
-          family = binomial(),
-          method = "REML"
-        ),
-        error = function(e) NULL
+      presence_smooth_info <- fit_gam_safely(
+        presence ~ s(predictor_within, bs = "cs", k = k_value) +
+          s(dive_id, bs = "re"),
+        data = dat,
+        family = binomial()
       )
+      fit_diagnostics[[length(fit_diagnostics) + 1]] <- fit_diagnostic_row(
+        presence_smooth_info, taxon, predictor, "frame_occurrence",
+        "binomial_gam_with_dive_random_intercept"
+      )
+      presence_smooth <- presence_smooth_info$fit
 
-      if (!is.null(presence_smooth)) {
+      if (presence_smooth_info$stable) {
         smooth_term <- extract_smooth_term(presence_smooth)
         sm <- summary(presence_smooth)
 
@@ -389,18 +503,19 @@ for (taxon in top_taxa) {
     }
 
     # Point-cover response among valid classified random points.
-    cover_linear <- tryCatch(
-      gam(
-        cbind(abundance, n_valid - abundance) ~
-          predictor_within + s(dive_id, bs = "re"),
-        data = dat,
-        family = quasibinomial(),
-        method = "REML"
-      ),
-      error = function(e) NULL
+    cover_linear_info <- fit_gam_safely(
+      cbind(abundance, n_valid - abundance) ~
+        predictor_within + s(dive_id, bs = "re"),
+      data = dat,
+      family = quasibinomial()
     )
+    fit_diagnostics[[length(fit_diagnostics) + 1]] <- fit_diagnostic_row(
+      cover_linear_info, taxon, predictor, "valid_point_cover",
+      "quasibinomial_linear_with_dive_random_intercept"
+    )
+    cover_linear <- cover_linear_info$fit
 
-    if (!is.null(cover_linear)) {
+    if (cover_linear_info$stable) {
       term <- extract_parametric_term(cover_linear, "predictor_within")
       sm <- summary(cover_linear)
 
@@ -567,17 +682,18 @@ for (taxon in top_taxa) {
 
     if (!eligible) next
 
-    presence_fit <- tryCatch(
-      gam(
-        presence ~ group + s(dive_id, bs = "re"),
-        data = dat,
-        family = binomial(),
-        method = "REML"
-      ),
-      error = function(e) NULL
+    presence_fit_info <- fit_gam_safely(
+      presence ~ group + s(dive_id, bs = "re"),
+      data = dat,
+      family = binomial()
     )
+    fit_diagnostics[[length(fit_diagnostics) + 1]] <- fit_diagnostic_row(
+      presence_fit_info, taxon, factor_name, "frame_occurrence",
+      "binomial_factor_with_dive_random_intercept"
+    )
+    presence_fit <- presence_fit_info$fit
 
-    if (!is.null(presence_fit)) {
+    if (presence_fit_info$stable) {
       wald <- joint_wald_factor(presence_fit, "group")
       sm <- summary(presence_fit)
 
@@ -599,18 +715,19 @@ for (taxon in top_taxa) {
       )
     }
 
-    cover_fit <- tryCatch(
-      gam(
-        cbind(abundance, n_valid - abundance) ~
-          group + s(dive_id, bs = "re"),
-        data = dat,
-        family = quasibinomial(),
-        method = "REML"
-      ),
-      error = function(e) NULL
+    cover_fit_info <- fit_gam_safely(
+      cbind(abundance, n_valid - abundance) ~
+        group + s(dive_id, bs = "re"),
+      data = dat,
+      family = quasibinomial()
     )
+    fit_diagnostics[[length(fit_diagnostics) + 1]] <- fit_diagnostic_row(
+      cover_fit_info, taxon, factor_name, "valid_point_cover",
+      "quasibinomial_factor_with_dive_random_intercept"
+    )
+    cover_fit <- cover_fit_info$fit
 
-    if (!is.null(cover_fit)) {
+    if (cover_fit_info$stable) {
       wald <- joint_wald_factor(cover_fit, "group")
       sm <- summary(cover_fit)
 
@@ -659,6 +776,26 @@ if (length(factor_results) > 0) {
   write_csv(
     factor_table,
     file.path(out_dir, "27_factor_taxon_models.csv")
+  )
+}
+
+# -------------------------------------------------------------------------
+# Fit diagnostics
+# -------------------------------------------------------------------------
+# Critical convergence warnings are never silently ignored. Models that remain
+# unstable after the optimizer retry are omitted from inferential result tables
+# and retained here for auditability.
+
+if (length(fit_diagnostics) > 0) {
+  fit_diagnostics_table <- bind_rows(fit_diagnostics)
+  write_csv(
+    fit_diagnostics_table,
+    file.path(out_dir, "27_model_fit_diagnostics.csv")
+  )
+
+  write_csv(
+    fit_diagnostics_table %>% filter(!stable_for_inference),
+    file.path(out_dir, "27_models_excluded_numerical_instability.csv")
   )
 }
 
@@ -790,6 +927,9 @@ write_lines(
     "  occurrence fitted with binomial models",
     "  point cover fitted as taxon points / valid classified points using quasibinomial models",
     "  model R-squared/deviance values describe the whole model, including dive effects",
+    "  GAM fits are warning-captured and checked for numerical convergence",
+    "  Newton step/convergence failures are retried using outer/BFGS with the identical model",
+    "  fits still carrying critical warnings are excluded from inferential p-value tables",
     "",
     "substrate and relief:",
     "  inference restricted to dives where the factor varies within dive",
