@@ -118,6 +118,61 @@ fit <- dbrda(
   distance = DISTANCE_METHOD
 )
 
+
+# -------------------------------------------------------------------------
+# Model diagnostics: explanatory power, collinearity and aliasing
+# -------------------------------------------------------------------------
+# RsquareAdj() is supported for dbRDA objects. vif.cca() diagnoses linear
+# dependencies among constraints/contrasts; VIF > 10 is treated as a warning
+# threshold, not an automatic deletion rule.
+
+r2_info <- vegan::RsquareAdj(fit)
+vif_values <- vegan::vif.cca(fit)
+
+vif_table <- tibble(
+  constraint_or_contrast = names(vif_values),
+  vif = as.numeric(vif_values),
+  vif_over_10 = as.numeric(vif_values) > 10
+)
+
+alias_names <- tryCatch(
+  alias(fit, names.only = TRUE),
+  error = function(e) character(0)
+)
+
+diagnostic_summary <- tibble(
+  n_frames = nrow(dat),
+  n_dives = n_distinct(dat$dive_id),
+  predictors = paste(usable_terms, collapse = " + "),
+  r_squared = as.numeric(r2_info$r.squared),
+  adjusted_r_squared = as.numeric(r2_info$adj.r.squared),
+  max_vif = if (length(vif_values)) max(vif_values, na.rm = TRUE) else NA_real_,
+  n_vif_over_10 = sum(vif_values > 10, na.rm = TRUE),
+  n_aliased_constraints = length(alias_names),
+  permutation_restriction = PERMUTATION_STRATA_COLUMN
+)
+
+write_csv(
+  diagnostic_summary,
+  file.path(out_dir, "24_dbrda_model_diagnostics.csv")
+)
+write_csv(
+  vif_table,
+  file.path(out_dir, "24_dbrda_vif.csv")
+)
+write_lines(
+  alias_names,
+  file.path(out_dir, "24_dbrda_aliased_constraints.txt")
+)
+
+if (any(vif_values > 10, na.rm = TRUE)) {
+  warning(
+    "dbRDA contains one or more constraint/contrast VIF values > 10. ",
+    "Inspect 24_dbrda_vif.csv before ecological interpretation.",
+    call. = FALSE
+  )
+}
+
 perm_control <- permute::how(
   blocks = factor(dat[[PERMUTATION_STRATA_COLUMN]]),
   nperm = N_PERMUTATIONS
@@ -262,6 +317,32 @@ if (nrow(dive_meta) >= 6 &&
   )
 
   set.seed(RANDOM_SEED)
+
+    dive_r2_info <- vegan::RsquareAdj(dive_fit)
+    dive_vif_values <- vegan::vif.cca(dive_fit)
+
+    write_csv(
+      tibble(
+        constraint_or_contrast = names(dive_vif_values),
+        vif = as.numeric(dive_vif_values),
+        vif_over_10 = as.numeric(dive_vif_values) > 10
+      ),
+      file.path(out_dir, "24_dive_dbrda_latlong_vif.csv")
+    )
+
+    write_csv(
+      tibble(
+        n_dives = nrow(dive_dat),
+        predictors = "lat + long",
+        r_squared = as.numeric(dive_r2_info$r.squared),
+        adjusted_r_squared = as.numeric(dive_r2_info$adj.r.squared),
+        max_vif = if (length(dive_vif_values)) max(dive_vif_values, na.rm = TRUE) else NA_real_,
+        n_vif_over_10 = sum(dive_vif_values > 10, na.rm = TRUE),
+        permutation_restriction = "none_dive_is_unit"
+      ),
+      file.path(out_dir, "24_dive_dbrda_latlong_diagnostics.csv")
+    )
+
   dive_overall <- anova(
     dive_fit,
     permutations = N_PERMUTATIONS

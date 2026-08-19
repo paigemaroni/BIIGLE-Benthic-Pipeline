@@ -427,6 +427,79 @@ if (length(sample_reports) > 0) {
   )
 }
 
+
+# -------------------------------------------------------------------------
+# Interpretation flags
+# -------------------------------------------------------------------------
+# This summary does NOT alter the inferential tests or the global BH/FDR
+# correction above. It simply makes the intended interpretation explicit.
+# In particular, categorical PERMANOVA results are flagged when the matching
+# standalone PERMDISP test indicates heterogeneous multivariate dispersion.
+
+if (exists("permanova_out")) {
+  inference_summary <- permanova_out %>%
+    filter(is_inferential_term) %>%
+    transmute(
+      model,
+      predictor,
+      sampling_level,
+      permutation_restriction,
+      n,
+      n_dives,
+      p_value,
+      p_adjusted_global,
+      raw_p_below_alpha = is.finite(p_value) & p_value < ALPHA,
+      global_fdr_below_alpha = is.finite(p_adjusted_global) &
+        p_adjusted_global < ALPHA
+    )
+
+  if (exists("permdisp_out")) {
+    dispersion_summary <- permdisp_out %>%
+      filter(is_inferential_term) %>%
+      transmute(
+        predictor,
+        permdisp_p_value = p_value,
+        permdisp_p_adjusted_global = p_adjusted_global,
+        dispersion_differs_global_fdr =
+          is.finite(p_adjusted_global) & p_adjusted_global < ALPHA
+      )
+
+    inference_summary <- inference_summary %>%
+      left_join(dispersion_summary, by = "predictor")
+  } else {
+    inference_summary <- inference_summary %>%
+      mutate(
+        permdisp_p_value = NA_real_,
+        permdisp_p_adjusted_global = NA_real_,
+        dispersion_differs_global_fdr = NA
+      )
+  }
+
+  inference_summary <- inference_summary %>%
+    mutate(
+      interpretation_flag = case_when(
+        predictor %in% CATEGORICAL_ENVIRONMENTAL_VARIABLES &
+          !is.na(dispersion_differs_global_fdr) &
+          dispersion_differs_global_fdr ~
+          "categorical_result_cautioned_by_dispersion_difference",
+        global_fdr_below_alpha ~
+          "supported_after_global_fdr",
+        raw_p_below_alpha ~
+          "raw_signal_not_supported_after_global_fdr",
+        TRUE ~
+          "not_supported_at_alpha"
+      ),
+      multiplicity_note =
+        "Primary correction = BH/FDR across all reported inferential PERMANOVA terms"
+    )
+
+  write_csv(
+    inference_summary,
+    file.path(out_dir, "23_permanova_interpretation_summary.csv")
+  )
+}
+
+
 cat("Point-sampled frames: ", nrow(meta_all), "\n", sep = "")
 cat("Community-model eligible frames: ", nrow(meta), "\n", sep = "")
 cat("Eligible dives represented: ", n_distinct(meta$dive_id), "\n", sep = "")
