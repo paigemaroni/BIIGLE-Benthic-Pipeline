@@ -6,86 +6,164 @@ cat("Analysis 24: CAP / distance-based RDA\n")
 cat("=====================================\n")
 
 a <- prepare_point_analysis()
-mat <- a$community_matrix
-meta <- a$frame_summary
+mat_all <- a$community_matrix
+meta_all <- a$frame_summary
 
-eligible_frames <- community_model_keep(meta, mat)
-mat <- mat[eligible_frames, , drop = FALSE]
+eligible_frames <- community_model_keep(meta_all, mat_all)
+mat <- mat_all[eligible_frames, , drop = FALSE]
 mat <- mat[, colSums(mat) > 0, drop = FALSE]
-meta <- meta %>% filter(filename %in% rownames(mat))
+meta <- meta_all %>% filter(filename %in% rownames(mat))
 meta <- meta[match(rownames(mat), meta$filename), , drop = FALSE]
 
+out_dir <- file.path(ANALYSES_DIR, "05_CAP_dbRDA")
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+
+trim_rare_factor_levels <- function(dat, terms, min_n = MIN_GROUP_N) {
+  factor_terms <- intersect(terms, CATEGORICAL_ENVIRONMENTAL_VARIABLES)
+  if (length(factor_terms) == 0 || nrow(dat) == 0) return(dat)
+
+  repeat {
+    n_before <- nrow(dat)
+    for (variable in factor_terms) {
+      vals <- clean_chr(dat[[variable]])
+      counts <- table(vals, useNA = "no")
+      keep_levels <- names(counts[counts >= min_n])
+
+      dat <- dat[
+        !is.na(vals) & vals %in% keep_levels,
+        ,
+        drop = FALSE
+      ]
+      if (nrow(dat) == 0) return(dat)
+      dat[[variable]] <- droplevels(factor(dat[[variable]]))
+    }
+    if (nrow(dat) == n_before) break
+  }
+
+  dat
+}
+
+add_adjusted_p <- function(tab) {
+  out <- extract_anova_table(tab)
+  if ("Pr(>F)" %in% names(out)) {
+    out <- out %>%
+      mutate(
+        p_value = .data[["Pr(>F)"]],
+        p_adjusted = p.adjust(p_value, method = P_ADJUST_METHOD)
+      )
+  }
+  out
+}
+
+# -------------------------------------------------------------------------
+# Frame-level constrained ordination
+# -------------------------------------------------------------------------
 terms <- intersect(
   c("depth_m", "temperature", "frame_substrate_class", "frame_relief_class"),
   names(meta)
 )
 
+if (length(terms) == 0) {
+  stop("No configured environmental variables are present for CAP/dbRDA.", call. = FALSE)
+}
+
 complete <- complete.cases(meta[, terms, drop = FALSE])
 dat <- meta[complete, , drop = FALSE]
-comm <- transform_community_matrix(mat[dat$filename, , drop = FALSE], COMMUNITY_TRANSFORM)
+n_complete_before_replication_filter <- nrow(dat)
 
-for (term in intersect(terms, CATEGORICAL_ENVIRONMENTAL_VARIABLES)) {
-  dat[[term]] <- droplevels(factor(dat[[term]]))
+dat <- trim_rare_factor_levels(dat, terms, MIN_GROUP_N)
+
+for (variable in intersect(terms, CATEGORICAL_ENVIRONMENTAL_VARIABLES)) {
+  if (variable %in% names(dat)) {
+    dat[[variable]] <- droplevels(factor(dat[[variable]]))
+  }
 }
 
-if (nrow(dat) < 15 || length(terms) == 0) {
-  stop("Too few complete frames for the configured CAP/dbRDA environmental model.", call. = FALSE)
+usable_terms <- terms[
+  vapply(
+    terms,
+    function(variable) {
+      variable %in% names(dat) &&
+        nrow(dat) > 0 &&
+        n_distinct(dat[[variable]]) >= 2
+    },
+    logical(1)
+  )
+]
+
+if (nrow(dat) < 15 || length(usable_terms) == 0) {
+  stop(
+    "Too few replicated complete frames for the configured CAP/dbRDA model.",
+    call. = FALSE
+  )
 }
 
-out_dir <- file.path(ANALYSES_DIR, "05_CAP_dbRDA")
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
-
-formula <- as.formula(
-  paste("comm ~", paste(terms, collapse = " + "))
+comm <- force_numeric_matrix(
+  transform_community_matrix(
+    mat[dat$filename, , drop = FALSE],
+    COMMUNITY_TRANSFORM
+  ),
+  "dbRDA transformed community matrix"
 )
 
-# vegan currently recommends dbrda() for distance-based RDA.
+formula <- as.formula(
+  paste("comm ~", paste(usable_terms, collapse = " + "))
+)
+
+# vegan's dbrda() provides distance-based RDA. Permutations are blocked by
+# dive using a permute design so repeated frames never exchange among dives.
 fit <- dbrda(
   formula,
   data = dat,
   distance = DISTANCE_METHOD
 )
 
+perm_control <- permute::how(
+  blocks = factor(dat[[PERMUTATION_STRATA_COLUMN]]),
+  nperm = N_PERMUTATIONS
+)
+
 set.seed(RANDOM_SEED)
 overall_test <- anova(
   fit,
-  permutations = N_PERMUTATIONS,
-  strata = dat[[PERMUTATION_STRATA_COLUMN]]
+  permutations = perm_control
 )
 
 set.seed(RANDOM_SEED)
 term_test <- anova(
   fit,
   by = "margin",
-  permutations = N_PERMUTATIONS,
-  strata = dat[[PERMUTATION_STRATA_COLUMN]]
+  permutations = perm_control
 )
 
 set.seed(RANDOM_SEED)
 axis_test <- anova(
   fit,
   by = "axis",
-  permutations = N_PERMUTATIONS,
-  strata = dat[[PERMUTATION_STRATA_COLUMN]]
+  permutations = perm_control
 )
 
 write_csv(
-  extract_anova_table(overall_test),
+  add_adjusted_p(overall_test),
   file.path(out_dir, "24_dbrda_overall_test.csv")
 )
 write_csv(
-  extract_anova_table(term_test),
+  add_adjusted_p(term_test),
   file.path(out_dir, "24_dbrda_term_tests.csv")
 )
 write_csv(
-  extract_anova_table(axis_test),
+  add_adjusted_p(axis_test),
   file.path(out_dir, "24_dbrda_axis_tests.csv")
 )
 
 score_matrix <- scores(fit, display = "sites")
 if (is.null(dim(score_matrix)) || ncol(score_matrix) < 2) {
-  stop("dbRDA returned fewer than two site-score axes; a two-dimensional CAP figure cannot be drawn.", call. = FALSE)
+  stop(
+    "dbRDA returned fewer than two site-score axes; a two-dimensional CAP figure cannot be drawn.",
+    call. = FALSE
+  )
 }
+
 site_scores <- as.data.frame(score_matrix[, 1:2, drop = FALSE])
 site_scores$filename <- rownames(site_scores)
 site_scores <- as_tibble(site_scores) %>% left_join(dat, by = "filename")
@@ -110,7 +188,7 @@ p9 <- ggplot(
     title = "Constrained community ordination",
     subtitle = paste0(
       "Distance-based RDA using ", DISTANCE_METHOD,
-      "; environmental constraints: ", paste(terms, collapse = ", ")
+      "; environmental constraints: ", paste(usable_terms, collapse = ", ")
     ),
     x = axis_names[1],
     y = axis_names[2],
@@ -123,34 +201,46 @@ save_figure(p9, "Fig_09_CAP_dbRDA_Environment")
 write_csv(
   tibble(
     analysis = "CAP/dbRDA environmental model",
+    point_sampled_frames = nrow(meta_all),
     total_eligible_community_frames = nrow(meta),
+    complete_frames_before_replication_filter =
+      n_complete_before_replication_filter,
     complete_frames_used = nrow(dat),
-    excluded_for_missing_model_data = nrow(meta) - nrow(dat),
-    variables = paste(terms, collapse = " + "),
-    permutation_strata = PERMUTATION_STRATA_COLUMN
+    excluded_for_missing_model_data =
+      nrow(meta) - n_complete_before_replication_filter,
+    excluded_for_rare_factor_levels =
+      n_complete_before_replication_filter - nrow(dat),
+    variables = paste(usable_terms, collapse = " + "),
+    permutation_design = "blocked_within_dive",
+    permutation_block = PERMUTATION_STRATA_COLUMN
   ),
   file.path(out_dir, "24_dbrda_sample_size.csv")
 )
 
-
-
 # -------------------------------------------------------------------------
 # Dive-level constrained ordination for latitude/longitude
 # -------------------------------------------------------------------------
+# Aggregate ONLY the QC-eligible frame universe, so dive-level and frame-level
+# multivariate analyses are based on the same biological inclusion rules.
 counts_dive <- a$community_counts %>%
+  filter(filename %in% eligible_frames) %>%
   group_by(dive_id, community_unit) %>%
   summarise(abundance = sum(abundance), .groups = "drop") %>%
   rename(filename = dive_id)
 
 dive_mat <- community_matrix_from_counts(counts_dive, row_id = "filename")
 dive_mat <- dive_mat[, colSums(dive_mat) > 0, drop = FALSE]
-dive_mat_t <- transform_community_matrix(dive_mat, COMMUNITY_TRANSFORM)
+dive_mat_t <- force_numeric_matrix(
+  transform_community_matrix(dive_mat, COMMUNITY_TRANSFORM),
+  "Dive-level dbRDA transformed community matrix"
+)
 
-dive_meta <- a$frame_summary %>%
+dive_meta <- meta %>%
   group_by(dive_id) %>%
   summarise(
     lat = median_or_na(lat),
     long = median_or_na(long),
+    eligible_frames = n(),
     .groups = "drop"
   ) %>%
   filter(
@@ -159,7 +249,10 @@ dive_meta <- a$frame_summary %>%
     !is.na(long)
   )
 
-if (nrow(dive_meta) >= 6 && n_distinct(dive_meta$lat) >= 3) {
+if (nrow(dive_meta) >= 6 &&
+    n_distinct(dive_meta$lat) >= 3 &&
+    n_distinct(dive_meta$long) >= 3) {
+
   dive_comm <- dive_mat_t[dive_meta$dive_id, , drop = FALSE]
 
   dive_fit <- dbrda(
@@ -182,12 +275,12 @@ if (nrow(dive_meta) >= 6 && n_distinct(dive_meta$lat) >= 3) {
   )
 
   write_csv(
-    extract_anova_table(dive_overall),
+    add_adjusted_p(dive_overall),
     file.path(out_dir, "24_dive_dbrda_latlong_overall_test.csv")
   )
 
   write_csv(
-    extract_anova_table(dive_terms),
+    add_adjusted_p(dive_terms),
     file.path(out_dir, "24_dive_dbrda_latlong_term_tests.csv")
   )
 
@@ -227,7 +320,7 @@ if (nrow(dive_meta) >= 6 && n_distinct(dive_meta$lat) >= 3) {
       coord_equal() +
       labs(
         title = "Dive-level constrained community ordination",
-        subtitle = "Community counts aggregated by dive; constrained by latitude and longitude",
+        subtitle = "QC-eligible community data aggregated by dive; constrained by latitude and longitude",
         x = axes[1],
         y = axes[2],
         colour = "Latitude"
@@ -247,7 +340,21 @@ if (nrow(dive_meta) >= 6 && n_distinct(dive_meta$lat) >= 3) {
     dive_fit,
     file.path(out_dir, "24_dive_dbrda_latlong_model.rds")
   )
+
+  write_csv(
+    tibble(
+      analysis = "Dive-level CAP/dbRDA latitude + longitude",
+      eligible_dives = nrow(dive_meta),
+      eligible_frames_aggregated = sum(dive_meta$eligible_frames),
+      variables = "lat + long",
+      permutation_design = "unrestricted_dive_is_unit"
+    ),
+    file.path(out_dir, "24_dive_dbrda_latlong_sample_size.csv")
+  )
 }
 
-cat("dbRDA frames used: ", nrow(dat), "\n", sep = "")
-cat("Variables: ", paste(terms, collapse = " + "), "\n", sep = "")
+cat("Point-sampled frames: ", nrow(meta_all), "\n", sep = "")
+cat("Community-model eligible frames: ", nrow(meta), "\n", sep = "")
+cat("dbRDA complete frames used: ", nrow(dat), "\n", sep = "")
+cat("Variables: ", paste(usable_terms, collapse = " + "), "\n", sep = "")
+cat("Eligible dives represented: ", n_distinct(meta$dive_id), "\n", sep = "")

@@ -68,6 +68,51 @@ nmds <- metaMDS(
   trace = FALSE
 )
 
+# Diagnostic dimensionality check. A weak 2-D solution should not be forced
+# into interpretation when a low-dimensional 3-D solution represents the
+# same Bray-Curtis ranks substantially better.
+nmds_3d <- NULL
+if (NMDS_DIMENSIONS == 2 && nrow(mat_t) >= 5 && ncol(mat_t) >= 3) {
+  set.seed(RANDOM_SEED)
+  nmds_3d <- metaMDS(
+    bray,
+    k = 3,
+    trymax = NMDS_TRYMAX,
+    autotransform = FALSE,
+    trace = FALSE
+  )
+
+  stress_reduction_pct <- if (is.finite(nmds$stress) && nmds$stress > 0) {
+    100 * (nmds$stress - nmds_3d$stress) / nmds$stress
+  } else {
+    NA_real_
+  }
+
+  dimension_comparison <- tibble(
+    dimensions = c(2L, 3L),
+    stress = c(nmds$stress, nmds_3d$stress),
+    relative_stress_reduction_from_2d_percent = c(0, stress_reduction_pct)
+  )
+
+  write_csv(
+    dimension_comparison,
+    file.path(nmds_dir, "22_nmds_dimension_comparison.csv")
+  )
+
+  site_scores_3d <- as.data.frame(scores(nmds_3d, display = "sites"))
+  site_scores_3d$filename <- rownames(site_scores_3d)
+
+  write_csv(
+    as_tibble(site_scores_3d) %>% left_join(meta, by = "filename"),
+    file.path(nmds_dir, "22_nmds_scores_3d.csv")
+  )
+
+  saveRDS(
+    nmds_3d,
+    file.path(nmds_dir, "22_nmds_model_3d.rds")
+  )
+}
+
 site_scores <- as.data.frame(scores(nmds, display = "sites"))
 site_scores$filename <- rownames(site_scores)
 
@@ -359,5 +404,13 @@ cat(
   " (", round(pct_complete_dissimilarity, 2), "%)\n",
   sep = ""
 )
+if (!is.null(nmds_3d)) {
+  cat(
+    "3-D diagnostic stress: ",
+    format(nmds_3d$stress, digits = 5),
+    " (see 22_nmds_dimension_comparison.csv)\n",
+    sep = ""
+  )
+}
 cat("Frame-level envfit permutations: restricted within dive\n")
 cat("Latitude/longitude envfit unit: dive centroid\n")
