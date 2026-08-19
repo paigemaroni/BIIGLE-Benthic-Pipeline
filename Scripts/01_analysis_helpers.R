@@ -325,6 +325,26 @@ build_community_counts <- function(resolved_points) {
     count(filename, dive_id, community_unit, name = "abundance")
 }
 
+force_numeric_matrix <- function(x, context = "community data") {
+  if (is.null(dim(x)) || length(dim(x)) != 2L) {
+    stop(paste0(context, " must be two-dimensional."), call. = FALSE)
+  }
+
+  # xtabs() returns an object with class c("xtabs", "table").  A simple
+  # as.matrix() can retain that class because the object is already
+  # two-dimensional.  Rebuilding from numeric values strips table/xtabs S3
+  # classes and guarantees a plain numeric matrix for vegan ordination tools.
+  dn <- dimnames(x)
+  out <- matrix(
+    as.numeric(x),
+    nrow = nrow(x),
+    ncol = ncol(x),
+    dimnames = dn
+  )
+  storage.mode(out) <- "double"
+  out
+}
+
 community_matrix_from_counts <- function(count_table, row_id = "filename") {
   if (nrow(count_table) == 0) {
     return(matrix(numeric(0), nrow = 0, ncol = 0))
@@ -332,28 +352,32 @@ community_matrix_from_counts <- function(count_table, row_id = "filename") {
 
   formula <- as.formula(paste0("abundance ~ ", row_id, " + community_unit"))
   mat <- xtabs(formula, data = count_table)
-  mat <- as.matrix(mat)
-  storage.mode(mat) <- "numeric"
-  mat
+  force_numeric_matrix(mat, "community count matrix")
 }
 
 transform_community_matrix <- function(mat, method = COMMUNITY_TRANSFORM) {
   method <- tolower(method)
+  mat <- force_numeric_matrix(mat, "community matrix before transformation")
 
-  if (method == "none") return(mat)
-  if (method == "sqrt") return(sqrt(mat))
-  if (method == "relative") return(decostand(mat, method = "total"))
-  if (method == "sqrt_relative") {
-    return(sqrt(decostand(mat, method = "total")))
+  out <- if (method == "none") {
+    mat
+  } else if (method == "sqrt") {
+    sqrt(mat)
+  } else if (method == "relative") {
+    decostand(mat, method = "total")
+  } else if (method == "sqrt_relative") {
+    sqrt(decostand(mat, method = "total"))
+  } else {
+    stop(
+      paste0(
+        "Unknown COMMUNITY_TRANSFORM: ", method,
+        ". Use none, sqrt, relative, or sqrt_relative."
+      ),
+      call. = FALSE
+    )
   }
 
-  stop(
-    paste0(
-      "Unknown COMMUNITY_TRANSFORM: ", method,
-      ". Use none, sqrt, relative, or sqrt_relative."
-    ),
-    call. = FALSE
-  )
+  force_numeric_matrix(out, "transformed community matrix")
 }
 
 

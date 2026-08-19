@@ -19,7 +19,21 @@ if (nrow(mat) < 4 || ncol(mat) < 2) {
   stop("Too few eligible frames or biological groups for NMDS.", call. = FALSE)
 }
 
-mat_t <- transform_community_matrix(mat, COMMUNITY_TRANSFORM)
+mat_t <- force_numeric_matrix(
+  transform_community_matrix(mat, COMMUNITY_TRANSFORM),
+  "NMDS transformed community matrix"
+)
+
+if (any(!is.finite(mat_t))) {
+  stop("NMDS transformed community matrix contains non-finite values.", call. = FALSE)
+}
+if (any(mat_t < 0)) {
+  stop("NMDS transformed community matrix contains negative values.", call. = FALSE)
+}
+if (any(rowSums(mat_t) <= 0)) {
+  stop("NMDS transformed community matrix contains one or more empty rows.", call. = FALSE)
+}
+
 bray <- vegdist(mat_t, method = DISTANCE_METHOD)
 
 bray_dir <- file.path(ANALYSES_DIR, "03_Community_Composition", "Bray_Curtis")
@@ -47,8 +61,7 @@ pct_complete_dissimilarity <- if (n_pairs > 0) {
 
 set.seed(RANDOM_SEED)
 nmds <- metaMDS(
-  mat_t,
-  distance = DISTANCE_METHOD,
+  bray,
   k = NMDS_DIMENSIONS,
   trymax = NMDS_TRYMAX,
   autotransform = FALSE,
