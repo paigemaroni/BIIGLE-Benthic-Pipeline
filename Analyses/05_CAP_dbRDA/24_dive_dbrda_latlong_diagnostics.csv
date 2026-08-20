@@ -1,0 +1,2 @@
+n_dives,predictors,r_squared,adjusted_r_squared,max_vif,n_vif_over_10,permutation_restriction
+18,lat + long,0.10795099055045076,-0.010988877376155726,1.2751093751061036,0,none_dive_is_unit

@@ -1,0 +1,16 @@
+metric,value
+stress,0.21222692
+stress_interpretation,weak_two_dimensional_representation
+dimensions,2
+point_sampled_frames,522
+eligible_frames,430
+excluded_frames,92
+biological_groups,73
+distance_method,bray
+community_transform,sqrt_relative
+minimum_biotic_points,10
+minimum_total_points,80
+maximum_total_points,120
+bray_curtis_pairs,92235
+complete_dissimilarity_pairs,8658
+complete_dissimilarity_pairs_percent,9.3868922

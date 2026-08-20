@@ -5,3 +5,41 @@
 # Reproducible generated intermediate datasets
 Data/Intermediate/*.csv
 !Data/Intermediate/.gitkeep
+
+# --- BEGIN GENERATED OUTPUT POLICY ---
+
+# Final analytical datasets are regenerated from Sheets + processing scripts
+Data/Final/*.csv
+
+# Row-level / duplicate alpha-diversity products
+Analyses/02_Alpha_Diversity/21_frame_alpha_diversity.csv
+Analyses/02_Alpha_Diversity/Evenness/
+Analyses/02_Alpha_Diversity/Rarefaction/
+Analyses/02_Alpha_Diversity/Richness/
+Analyses/02_Alpha_Diversity/Shannon_Wiener/
+Analyses/02_Alpha_Diversity/Simpson/
+
+# Large/reconstructable community-composition products
+Analyses/03_Community_Composition/Bray_Curtis/
+Analyses/03_Community_Composition/NMDS/*.rds
+Analyses/03_Community_Composition/NMDS/22_nmds_scores*.csv
+Analyses/03_Community_Composition/NMDS/22_nmds_dive_centroids.csv
+
+# Reconstructable dbRDA model objects and site scores
+Analyses/05_CAP_dbRDA/*.rds
+Analyses/05_CAP_dbRDA/*site_scores.csv
+
+# Large/reconstructable frame-level focal-taxon table
+Analyses/08_Taxon_Responses/27_focal_taxon_frame_data.csv
+
+# Large/reconstructable VME annotation-level tables
+Analyses/09_VME/28_vme_unique_annotations.csv
+Analyses/09_VME/28_vme_presence_across_point_frames.csv
+
+# PNGs are retained in GitHub for viewing; PDFs are regenerated locally
+Figures/*.pdf
+
+# --- END GENERATED OUTPUT POLICY ---
+
+# Large reconstructed unique-point QC table
+Analyses/00_Quality_Control/20_resolved_unique_point_annotations.csv

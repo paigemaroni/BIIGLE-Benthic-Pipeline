@@ -1,0 +1,2 @@
+analysis,point_sampled_frames,total_eligible_community_frames,complete_frames_before_replication_filter,complete_frames_used,excluded_for_missing_model_data,excluded_for_rare_factor_levels,variables,permutation_design,permutation_block
+CAP/dbRDA environmental model,522,430,179,141,251,38,depth_m + temperature + frame_substrate_class + frame_relief_class,blocked_within_dive,dive_id

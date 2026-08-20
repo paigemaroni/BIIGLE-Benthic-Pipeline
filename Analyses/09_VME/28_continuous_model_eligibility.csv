@@ -1,0 +1,3 @@
+predictor,n,n_dives,frames_with_vme,frames_without_vme,dives_with_within_dive_vme_variation,dives_with_predictor_variation,inferentially_eligible,exclusion_reason
+depth_m,209,8,183,26,5,8,TRUE,eligible
+temperature,209,8,183,26,5,7,TRUE,eligible

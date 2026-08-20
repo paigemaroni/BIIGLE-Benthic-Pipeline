@@ -1,0 +1,5 @@
+variable,variable_type,axis1,axis2,r_squared,p_value,n,n_dives,permutation_restriction,p_adjusted
+depth_m,continuous,0.3771950399686612,-0.18892402497470837,0.17796838538960416,0.077,179,7,dive_id,0.10266666666666666
+temperature,continuous,-0.5108425988697094,-0.3101091241204038,0.3571278296826828,4e-4,179,7,dive_id,0.0016
+frame_substrate_class,factor,NA,NA,0.49218922824418376,0.0118,427,17,dive_id,0.0236
+frame_relief_class,factor,NA,NA,0.02757267103624428,0.6795,427,17,dive_id,0.6795

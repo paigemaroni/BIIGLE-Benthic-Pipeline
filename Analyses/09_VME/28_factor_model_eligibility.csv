@@ -1,0 +1,3 @@
+predictor,n,n_dives,factor_levels,dives_with_within_dive_factor_variation,frames_with_vme,frames_without_vme,inferentially_eligible,exclusion_reason
+frame_substrate_class,322,13,6,13,231,91,TRUE,eligible
+frame_relief_class,152,4,2,4,136,16,TRUE,eligible

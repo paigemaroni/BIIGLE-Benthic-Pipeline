@@ -1,0 +1,5 @@
+term,Df,Sum Sq,Mean Sq,F,N.Perm,Pr(>F),p_value,r_squared,pseudo_f,model,predictor,sampling_level,permutation_restriction,n,n_dives,groups,minimum_factor_group_n,is_inferential_term,p_adjusted_global
+Groups,6,1.747045096720524,0.291174182786754,19.03520386957927,9999,1e-4,1e-4,NA,19.03520386957927,PERMDISP_frame_substrate_class,frame_substrate_class,frame,dive_id_blocks,366,17,7,5,TRUE,1e-4
+Residuals,359,5.49148474251435,0.015296614881655572,NA,NA,NA,NA,NA,NA,PERMDISP_frame_substrate_class,frame_substrate_class,frame,dive_id_blocks,366,17,7,5,FALSE,NA
+Groups,1,0.05745595949836258,0.05745595949836258,3.333927154388396,9999,1e-4,1e-4,NA,3.333927154388396,PERMDISP_frame_relief_class,frame_relief_class,frame,dive_id_blocks,420,17,2,5,TRUE,1e-4
+Residuals,418,7.203694009541539,0.01723371772617593,NA,NA,NA,NA,NA,NA,PERMDISP_frame_relief_class,frame_relief_class,frame,dive_id_blocks,420,17,2,5,FALSE,NA

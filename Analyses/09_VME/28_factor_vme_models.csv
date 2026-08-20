@@ -1,0 +1,3 @@
+predictor,response_type,analysis_method,effect_scope,n,n_dives,factor_levels,df,statistic,p_value,rank_deficient,deviance_explained,model_r_squared,p_adjusted
+frame_substrate_class,frame_vme_occurrence,binomial_factor_with_dive_random_intercept,within_dives_where_factor_varies,322,13,6,5,3.301198997164131,0.6536581215136708,FALSE,0.5042936971053903,0.5171329983068316,0.6536581215136708
+frame_relief_class,frame_vme_occurrence,binomial_factor_with_dive_random_intercept,within_dives_where_factor_varies,152,4,2,1,7.2843855499285,0.006955651794205594,FALSE,0.24635380391045233,0.21542118440405877,0.013911303588411188

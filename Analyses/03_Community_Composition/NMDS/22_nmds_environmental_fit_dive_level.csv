@@ -1,0 +1,3 @@
+variable,variable_type,axis1,axis2,r_squared,p_value,n_dives,permutation_restriction,p_adjusted
+lat,continuous,0.17207855041676506,-0.25196490650486947,0.09309734162354279,0.4729,18,none_dive_is_unit,0.9236
+long,continuous,0.016910569082031285,0.10330508808257008,0.010957908570425716,0.9236,18,none_dive_is_unit,0.9236

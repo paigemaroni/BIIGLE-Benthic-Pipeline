@@ -1,0 +1,13 @@
+community_unit,total_points,frames_present,dives_present,eligible_frames,eligible_dives,frame_prevalence_percent,selected_as_focal_taxon
+Echinoderm_brittlestar,3985,390,17,430,18,90.69767441860465,TRUE
+Mollusc_bivalvia_burrowingclam,728,253,14,430,18,58.83720930232558,TRUE
+Coral_hydrocoral_branching,1645,190,15,430,18,44.18604651162791,TRUE
+Worm_annelida_tube,335,157,15,430,18,36.51162790697674,TRUE
+Sponge_true_demospongiae_crust_encrusting,600,120,11,430,18,27.906976744186046,TRUE
+Tunicate_ascidian_unstalked_solitary,391,100,9,430,18,23.25581395348837,TRUE
+Macroalgae_encrusting_red_calcareous,783,85,8,430,18,19.767441860465116,TRUE
+Echinoderm_crinoid_unstalked,351,82,9,430,18,19.069767441860463,TRUE
+Anemone_true_other,319,77,9,430,18,17.906976744186046,TRUE
+Bryozoan_hard_branching,261,72,9,430,18,16.74418604651163,TRUE
+Tunicate_ascidian_stalked_solitary,442,62,4,430,18,14.418604651162791,TRUE
+Coral_octocoral_massivesoft,177,51,4,430,18,11.86046511627907,TRUE

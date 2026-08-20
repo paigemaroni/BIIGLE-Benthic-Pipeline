@@ -1,0 +1,13 @@
+response,grouping_variable,total_alpha_model_frames,rows_complete_before_replication_filter,rows_used_after_replication_filter,groups_retained,n_dives,dives_with_within_factor_variation,minimum_group_n,inferentially_eligible,exclusion_reason
+observed_common_id_richness,frame_substrate_class,430,427,366,7,17,11,5,TRUE,eligible
+observed_common_id_richness,frame_relief_class,430,427,420,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation
+rarefied_common_id_richness,frame_substrate_class,430,427,366,7,17,11,5,TRUE,eligible
+rarefied_common_id_richness,frame_relief_class,430,427,420,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation
+shannon_common_id_diversity,frame_substrate_class,430,427,366,7,17,11,5,TRUE,eligible
+shannon_common_id_diversity,frame_relief_class,430,427,420,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation
+inverse_simpson_common_id_diversity,frame_substrate_class,430,427,366,7,17,11,5,TRUE,eligible
+inverse_simpson_common_id_diversity,frame_relief_class,430,427,420,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation
+pielou_evenness,frame_substrate_class,430,422,363,7,17,10,5,TRUE,eligible
+pielou_evenness,frame_relief_class,430,422,415,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation
+pct_biotic_all,frame_substrate_class,430,427,366,7,17,11,5,TRUE,eligible
+pct_biotic_all,frame_relief_class,430,427,420,2,17,1,5,FALSE,fewer_than_two_dives_with_within_factor_variation

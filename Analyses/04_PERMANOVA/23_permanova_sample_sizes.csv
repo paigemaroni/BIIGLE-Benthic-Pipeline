@@ -1,0 +1,8 @@
+analysis,total_point_sampled_frames,total_community_eligible_frames,rows_complete_before_replication_filter,rows_used,rows_excluded_missing,rows_excluded_rare_factor_levels,variables
+PERMANOVA frame: depth_m,522,430,179,179,251,0,depth_m
+PERMANOVA frame: temperature,522,430,179,179,251,0,temperature
+PERMANOVA frame: frame_substrate_class,522,430,427,366,3,61,frame_substrate_class
+PERMANOVA frame: frame_relief_class,522,430,427,420,3,7,frame_relief_class
+PERMANOVA frame combined environment,522,430,179,141,251,38,depth_m + temperature + frame_substrate_class + frame_relief_class
+PERMANOVA dive: lat,522,430,18,18,0,0,lat
+PERMANOVA dive: long,522,430,18,18,0,0,long

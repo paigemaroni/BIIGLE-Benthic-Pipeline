@@ -1,0 +1,4 @@
+filename,dive_id,has_vme,n_vme_annotations,n_vme_types,vme_types
+2025_09_SA_FR01_018_v1_0013.png,2025-09-sa-fr01-018,TRUE,18,3,Sponge_true_demospongiae_erect_branching | Tunicate_ascidian | Tunicate_ascidian_unstalked
+2025_09_SA_FR01_018_v1_0014.png,2025-09-sa-fr01-018,TRUE,28,2,Tunicate_ascidian | Tunicate_ascidian_unstalked
+2025_09_SA_FR01_018_v1_0015.png,2025-09-sa-fr01-018,TRUE,19,2,Sponge_true_demospongiae_erect_branching | Tunicate_ascidian_unstalked

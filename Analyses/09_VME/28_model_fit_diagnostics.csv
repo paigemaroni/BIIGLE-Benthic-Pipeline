@@ -1,0 +1,5 @@
+predictor,response_type,analysis_method,optimizer_used,retried_with_bfgs,fit_converged,critical_warning,stable_for_inference,warnings,primary_warnings,error_message,primary_error
+depth_m,frame_vme_occurrence,binomial_linear_with_dive_random_intercept,outer/newton,FALSE,TRUE,FALSE,TRUE,NA,NA,NA,NA
+temperature,frame_vme_occurrence,binomial_linear_with_dive_random_intercept,outer/newton,FALSE,TRUE,FALSE,TRUE,NA,NA,NA,NA
+frame_substrate_class,frame_vme_occurrence,binomial_factor_with_dive_random_intercept,outer/newton,FALSE,TRUE,FALSE,TRUE,NA,NA,NA,NA
+frame_relief_class,frame_vme_occurrence,binomial_factor_with_dive_random_intercept,outer/newton,FALSE,TRUE,FALSE,TRUE,NA,NA,NA,NA

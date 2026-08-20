@@ -1,0 +1,28 @@
+Analysis 26 hierarchy and test eligibility
+==========================================
+
+Why ordinary Welch t-tests / ANOVA are not used here:
+  The candidate frame-level grouping variables (substrate and relief)
+  are observed repeatedly within dives. Individual frames therefore
+  are not independent replicates of those groups.
+
+Primary factor test:
+  partial F for grouping variable after controlling for dive as a
+  fixed blocking factor; significance from factor-label permutations
+  restricted within dive.
+
+Global factor inference requires:
+  at least 5 frames per retained factor level
+  at least two retained levels
+  at least two dives
+  at least two dives showing within-dive factor variation
+
+Pairwise inference requires:
+  both groups to co-occur within at least two dives
+  at least 5 frames per group after restricting to co-occurring dives
+
+Dive comparisons:
+  descriptive only; frames are not treated as independent replicates
+  of a dive-level factor.
+
+Multiplicity: BH is applied across eligible global tests and separately within each response × factor family for pairwise tests.

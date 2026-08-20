@@ -1,0 +1,3 @@
+predictor,response_type,sampling_level,n_dives,rho,p_value,p_adjusted
+lat,dive_vme_frame_prevalence,dive,19,0.06383339945708577,0.7951584451458953,0.7951584451458953
+long,dive_vme_frame_prevalence,dive,19,-0.15603719867287635,0.5235376310934639,0.7951584451458953

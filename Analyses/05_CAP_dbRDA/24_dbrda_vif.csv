@@ -1,0 +1,7 @@
+constraint_or_contrast,vif,vif_over_10
+depth_m,1.9581887572887702,FALSE
+temperature,5.238395750493479,FALSE
+frame_substrate_classsoft_sand_shelldead,1.5575827434183822,FALSE
+frame_substrate_classsoft_silt,6.797330842757575,FALSE
+frame_substrate_classsoft_silt_bioturbation,2.1626417345057916,FALSE
+frame_relief_classhigh,1.3135357115647381,FALSE

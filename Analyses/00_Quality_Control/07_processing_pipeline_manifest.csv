@@ -1,0 +1,9 @@
+stage,description,output_file,rows,columns
+01,latitude/longitude,Data/Intermediate/01_annotations_latlong.csv,55096,21
+02,top-level class,Data/Intermediate/02_annotations_top_level.csv,55096,22
+03,taxonomy/abiotic enrichment,Data/Intermediate/03_annotations_taxonomy.csv,55096,37
+04,frame environmental metadata,Data/Intermediate/04_annotations_environment.csv,55096,40
+05,VME taxonomy,Data/Intermediate/05_annotations_vme_taxonomy.csv,55096,40
+06,frame substrate,Data/Intermediate/06_annotations_frame_substrate.csv,55096,44
+07a,final point data,Data/Final/point_annotations.csv,51955,44
+07b,final VME data,Data/Final/vme_annotations.csv,3141,44

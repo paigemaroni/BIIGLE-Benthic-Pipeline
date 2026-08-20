@@ -1,0 +1,35 @@
+Analysis 27 hierarchy and interpretation notes
+==============================================
+
+Focal taxa selected: top 12 community units by prevalence among QC-eligible frames.
+QC-eligible frames: 430
+Minimum presence frames for continuous/factor models: 10
+Minimum absence frames for continuous/factor models: 10
+
+depth_m and temperature:
+  sampling unit = frame
+  predictor centred within dive
+  dive random intercept included
+  occurrence fitted with binomial models
+  point cover fitted as taxon points / valid classified points using quasibinomial models
+  model R-squared/deviance values describe the whole model, including dive effects
+  GAM fits are warning-captured and checked for numerical convergence
+  Newton step/convergence failures are retried using outer/BFGS with the identical model
+  fits still carrying critical warnings are excluded from inferential p-value tables
+
+substrate and relief:
+  inference restricted to dives where the factor varies within dive
+  retained factor levels require at least 5 frames
+  factor effect tested jointly using Wald tests from hierarchical GAMs
+  rank-deficient factor models are flagged rather than interpreted
+
+latitude and longitude:
+  sampling unit = dive
+  focal-taxon frame prevalence aggregated to one value per dive
+  Spearman association tested across dives
+
+Multiplicity correction: BH within each predeclared model/predictor/response family.
+
+Interpretation:
+  focal taxon models are exploratory taxon-specific follow-ups to the community-level analyses.
+  They should not be interpreted as independent species-level causal tests.

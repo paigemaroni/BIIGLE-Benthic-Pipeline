@@ -1,0 +1,6 @@
+label_hierarchy,row_count,match_type,candidate_taxon_rows
+Biotic > Echinoderm > Echinodermata > Crinoid > Crinoidea > Unstalked crinoid,2,biotic_prefix_consensus,1
+Biotic > Coral > Cnidaria > Hydrozoa,2,biotic_prefix_consensus,3
+Abiotic > Habitat Relief > Flat > Soft,1,abiotic_partial_consensus,6
+Biotic > Worm > Worms > Polychaeta > Annelida,1,biotic_prefix_consensus,3
+Biotic > Jelly,1,biotic_prefix_consensus,8

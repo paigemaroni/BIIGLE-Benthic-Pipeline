@@ -1,0 +1,3 @@
+predictor,response_type,analysis_method,effect_scope,n,n_dives,estimate,std_error,statistic,p_value,deviance_explained,model_r_squared,p_adjusted
+depth_m,frame_vme_occurrence,binomial_linear_with_dive_random_intercept,within_dive,209,8,0.11081946873286104,0.03505064601574063,3.1616954701232602,0.001568535054914967,0.3953306541753295,0.3848674628336691,0.003137070109829934
+temperature,frame_vme_occurrence,binomial_linear_with_dive_random_intercept,within_dive,209,8,-1.421050552942963,0.6448176490844509,-2.203802198901739,0.02753825787914215,0.38162274854466016,0.39496338216970683,0.02753825787914215

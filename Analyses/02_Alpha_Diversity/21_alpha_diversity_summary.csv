@@ -1,0 +1,2 @@
+point_sampled_frames,frames_with_resolved_biota,frames_without_resolved_biota,frames_rarefaction_eligible,frames_alpha_model_eligible,median_assigned_biotic_points,median_observed_richness,median_rarefied_richness,median_shannon,median_inverse_simpson,median_evenness
+522,513,9,439,430,23,5,3.7708548339477037,1.162225544921092,2.5720164609053495,0.7854752972273343

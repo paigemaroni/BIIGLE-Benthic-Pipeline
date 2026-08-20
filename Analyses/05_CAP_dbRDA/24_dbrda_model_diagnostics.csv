@@ -1,0 +1,2 @@
+n_frames,n_dives,predictors,r_squared,adjusted_r_squared,max_vif,n_vif_over_10,n_aliased_constraints,permutation_restriction
+141,6,depth_m + temperature + frame_substrate_class + frame_relief_class,0.380898786409187,0.3531778365469118,6.797330842757575,0,0,dive_id

@@ -1,0 +1,7 @@
+variable,frames_with_value,total_frames,percent_complete
+lat,522,522,100
+long,522,522,100
+depth_m,209,522,40.03831417624521
+temperature,209,522,40.03831417624521
+frame_substrate_class,512,522,98.08429118773947
+frame_relief_class,512,522,98.08429118773947
